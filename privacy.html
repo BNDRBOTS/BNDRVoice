@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#090909">
+<meta name="description" content="BNDR VoiceEngine privacy policy — what we store, what we never see, and how your data is handled.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
+<title>Privacy Policy · BNDR VoiceEngine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root { --black:#090909; --panel:#141415; --bone:#F4F1EC; --muted:#b9b5ad; --dim:#7a766f; --border:#232325; --mag:#E0006A; --ice:#00C4FF; --font-m:'Space Mono',monospace; --r:8px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--black); color:var(--bone); font-family:'Outfit',sans-serif; font-weight:300; line-height:1.7; -webkit-font-smoothing:antialiased; }
+.nav { position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:14px clamp(16px,4vw,40px); background:rgba(9,9,9,0.85); backdrop-filter:blur(14px); border-bottom:1px solid var(--border); }
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+.logo-mark { font-family:var(--font-m); font-weight:700; font-size:12px; letter-spacing:0.18em; color:#fff; background:var(--mag); padding:4px 7px; border-radius:4px; }
+.logo-name { font-weight:700; font-size:16px; } .logo-name span { color:var(--mag); }
+.nav a.back { font-size:13px; color:var(--muted); text-decoration:none; } .nav a.back:hover { color:var(--bone); }
+main { max-width:760px; margin:0 auto; padding:clamp(40px,7vh,70px) clamp(16px,4vw,40px) 80px; }
+.eyebrow { font-family:var(--font-m); font-size:11px; letter-spacing:0.22em; color:var(--mag); text-transform:uppercase; margin-bottom:14px; }
+h1 { font-weight:900; font-size:clamp(30px,5vw,44px); letter-spacing:-0.015em; margin-bottom:8px; }
+.updated { font-family:var(--font-m); font-size:11px; color:var(--dim); margin-bottom:40px; }
+h2 { font-weight:700; font-size:20px; margin:38px 0 10px; }
+p, li { color:var(--muted); font-size:15px; }
+ul { padding-left:22px; margin:10px 0; }
+li { margin-bottom:6px; }
+strong { color:var(--bone); font-weight:600; }
+a { color:var(--ice); text-decoration:none; } a:hover { text-decoration:underline; }
+.box { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:20px 22px; margin:24px 0; }
+footer { border-top:1px solid var(--border); padding:30px clamp(16px,4vw,40px); text-align:center; font-family:var(--font-m); font-size:10.5px; color:var(--dim); letter-spacing:0.08em; }
+footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a:hover { color:var(--mag); }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="logo" href="index.html"><span class="logo-mark">BNDR</span><span class="logo-name">Voice<span>Engine</span></span></a>
+  <a class="back" href="index.html">← Back to home</a>
+</nav>
+<main>
+  <div class="eyebrow">Legal</div>
+  <h1>Privacy Policy</h1>
+  <div class="updated">LAST UPDATED: JULY 14, 2026</div>
+
+  <p>This policy explains, in plain language, what BNDR VoiceEngine (“the Service”, operated by BNDR LLC) does and does not do with your information. The short version: the Service is built so that we <strong>cannot</strong> read your writing or your AI keys.</p>
+
+  <div class="box">
+    <strong>The one-paragraph summary.</strong>
+    <p style="margin-top:6px;">Your writing samples travel directly from your browser to the AI provider you connect (Anthropic, OpenAI, or DeepSeek) and never pass through our servers. Your API keys live only in your browser tab and vanish when it closes. We store only what's required to run your account: your email, your subscription status, a daily usage count, and any voice profiles you explicitly save. We run no ads, no third-party trackers, and we never sell data.</p>
+  </div>
+
+  <h2>1. What we store (and why)</h2>
+  <ul>
+    <li><strong>Account data</strong> — if you create an account: your email address and authentication records, handled by Supabase (our database and login provider).</li>
+    <li><strong>Subscription status</strong> — whether your plan is trialing, active, or canceled, updated by Stripe events. We never see or store your card number; payment details are handled entirely by Stripe.</li>
+    <li><strong>Usage counts</strong> — a per-day number of analyses, used to enforce plan limits. Not the content — just the count.</li>
+    <li><strong>Saved voice profiles</strong> — only if you press Save: the profile name, the generated profile files, and up to 500 characters of your sample as a preview. Delete them anytime from within the app.</li>
+  </ul>
+
+  <h2>2. What we never see</h2>
+  <ul>
+    <li><strong>Your API keys.</strong> Keys are kept in session storage in your browser tab only. They are never written to our database and disappear when the tab closes.</li>
+    <li><strong>Your writing samples.</strong> Analysis requests go from your browser to your chosen AI provider. Your provider's own privacy terms apply to that traffic (see the policies of Anthropic, OpenAI, or DeepSeek).</li>
+    <li><strong>Your payment details.</strong> Checkout happens on Stripe or Gumroad. We receive only a confirmation of the plan status or license validity.</li>
+  </ul>
+
+  <h2>3. Data stored on your device</h2>
+  <p>The Service uses your browser's local storage to make the app work. This is functional storage, not tracking:</p>
+  <ul>
+    <li><strong>Session storage</strong> (cleared when the tab closes): your API keys and selected AI provider.</li>
+    <li><strong>Local storage</strong> (persists on your device): your consent acknowledgment, whether you've seen the guided tour, an access pass if you redeem a gift code or lifetime license, on-device voice profiles (for pass holders), and a local daily usage count.</li>
+  </ul>
+  <p>You can clear all of it at any time through your browser's site-data settings. Nothing breaks — you'd just need to redeem your pass or sign in again.</p>
+
+  <h2>4. Cookies and tracking</h2>
+  <p>The Service sets no advertising cookies and includes no analytics or tracking scripts. Supabase sets the cookies/storage necessary for login sessions. That's it.</p>
+
+  <h2>5. Third-party services</h2>
+  <ul>
+    <li><strong>Supabase</strong> — authentication, database, and secure serverless functions.</li>
+    <li><strong>Stripe</strong> — subscription payments and billing management.</li>
+    <li><strong>Gumroad</strong> — lifetime license sales and license-key verification.</li>
+    <li><strong>Google Fonts</strong> — typeface delivery.</li>
+    <li><strong>Your AI provider</strong> (Anthropic, OpenAI, or DeepSeek) — processes the writing you submit, under your own account and their terms.</li>
+  </ul>
+
+  <h2>6. Data retention and deletion</h2>
+  <p>Saved profiles can be deleted in-app immediately. To delete your account and all associated data, email us and we'll complete the deletion within 30 days. On-device data is yours to clear whenever you like.</p>
+
+  <h2>7. Your rights</h2>
+  <p>Depending on where you live (including under GDPR and CCPA), you may have rights to access, correct, export, or delete your personal data, and to object to processing. Email us to exercise any of these — we honor them for everyone, regardless of location.</p>
+
+  <h2>8. Children</h2>
+  <p>The Service is not directed to children under 13, and we do not knowingly collect personal information from them.</p>
+
+  <h2>9. Changes to this policy</h2>
+  <p>If we make material changes, we'll update the date at the top of this page. Continued use after changes means you accept the updated policy.</p>
+
+  <h2>10. Contact</h2>
+  <p>Questions or requests: <a id="contactEmail" href="#">email us</a>.</p>
+</main>
+<footer>
+  © <span id="year"></span> BNDR LLC
+  <div style="margin-top:10px;"><a href="index.html">Home</a><a href="app.html">App</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a></div>
+</footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+(function () {
+  var cfg = window.BNDR_CONFIG || {};
+  var a = document.getElementById('contactEmail');
+  if (cfg.SUPPORT_EMAIL) { a.href = 'mailto:' + cfg.SUPPORT_EMAIL; a.textContent = cfg.SUPPORT_EMAIL; }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#090909">
+<meta name="description" content="BNDR VoiceEngine turns a sample of your writing into a deployable voice profile any AI can follow. Bring your own AI key. Your words never touch our servers.">
+<meta property="og:title" content="BNDR VoiceEngine — Your voice. Every AI.">
+<meta property="og:description" content="Paste 150–600 words. Get a forensic 16-dimension voice profile as a machine JSON file plus human instructions. Works with Anthropic, OpenAI, and DeepSeek.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
+<title>BNDR VoiceEngine — Your voice. Every AI.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root {
+  --black:#090909; --surface:#0e0e0f; --panel:#141415; --panel2:#1a1a1c;
+  --bone:#F4F1EC; --muted:#b9b5ad; --dim:#7a766f; --border:#232325;
+  --mag:#E0006A; --mag-mid:rgba(224,0,106,0.45); --mag-dim:rgba(224,0,106,0.08);
+  --ice:#00C4FF; --amber:#F5A623; --green:#00D68F;
+  --font-d:'Outfit',sans-serif; --font-m:'Space Mono',monospace;
+  --r:8px; --ease:cubic-bezier(0.16,1,0.3,1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; overflow-x:clip; }
+body { background:var(--black); color:var(--bone); font-family:var(--font-d); font-weight:300; line-height:1.6; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+body::before { content:''; position:fixed; inset:0; z-index:9999; pointer-events:none; opacity:0.05;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+::selection { background:var(--mag); color:#fff; }
+a { color:inherit; }
+
+/* ── NAV ─────────────────────────────────────────────────── */
+.nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:14px clamp(16px,4vw,40px); background:rgba(9,9,9,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--border); }
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.logo-mark { font-family:var(--font-m); font-weight:700; font-size:12px; letter-spacing:0.18em; color:#fff; background:var(--mag); padding:4px 7px; border-radius:4px; }
+.logo-name { font-weight:700; font-size:16px; letter-spacing:0.02em; }
+.logo-name span { color:var(--mag); }
+.nav-links { display:flex; align-items:center; gap:26px; }
+.nav-links a { font-size:13.5px; color:var(--muted); text-decoration:none; transition:color .2s var(--ease); }
+.nav-links a:hover { color:var(--bone); }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-d); font-weight:600; font-size:14px; padding:12px 22px; border-radius:var(--r); border:1px solid var(--border); background:var(--panel); color:var(--bone); cursor:pointer; text-decoration:none; transition:all .25s var(--ease); }
+.btn:hover { border-color:var(--mag-mid); transform:translateY(-1px); }
+.btn-primary { background:var(--mag); border-color:var(--mag); color:#fff; }
+.btn-primary:hover { box-shadow:0 8px 32px rgba(224,0,106,0.35); }
+.btn-lg { padding:15px 28px; font-size:15px; }
+.nav .btn { padding:9px 16px; font-size:13px; }
+.nav-burger { display:none; background:none; border:1px solid var(--border); border-radius:6px; color:var(--bone); font-size:18px; width:38px; height:38px; cursor:pointer; }
+@media(max-width:760px){
+  .nav-links { position:fixed; top:63px; left:0; right:0; flex-direction:column; align-items:stretch; gap:0; background:rgba(9,9,9,0.97); border-bottom:1px solid var(--border); display:none; }
+  .nav-links.open { display:flex; }
+  .nav-links a { padding:15px 20px; border-top:1px solid var(--border); font-size:15px; }
+  .nav-links .btn { margin:14px 20px; }
+  .nav-burger { display:block; }
+}
+
+/* ── HERO ────────────────────────────────────────────────── */
+.hero { position:relative; padding:clamp(120px,18vh,180px) clamp(16px,4vw,40px) clamp(60px,8vh,100px); max-width:1200px; margin:0 auto; display:grid; grid-template-columns:1.1fr 0.9fr; gap:clamp(24px,5vw,64px); align-items:center; }
+.hero::before { content:''; position:absolute; top:-20%; left:0; width:70%; height:80%; background:radial-gradient(ellipse at center, rgba(224,0,106,0.14), transparent 65%); pointer-events:none; filter:blur(20px); animation:aurora 14s ease-in-out infinite alternate; }
+.hero::after { content:''; position:absolute; top:0; right:0; width:55%; height:70%; background:radial-gradient(ellipse at center, rgba(0,196,255,0.08), transparent 65%); pointer-events:none; filter:blur(24px); animation:aurora 18s ease-in-out infinite alternate-reverse; }
+@keyframes aurora { from { transform:translate3d(0,0,0) scale(1); } to { transform:translate3d(4%,6%,0) scale(1.12); } }
+.eyebrow { font-family:var(--font-m); font-size:11px; letter-spacing:0.22em; color:var(--mag); text-transform:uppercase; margin-bottom:18px; }
+h1 { font-weight:900; font-size:clamp(38px,6vw,68px); line-height:1.04; letter-spacing:-0.02em; margin-bottom:20px; }
+h1 em { font-style:normal; color:var(--mag); }
+.hero-sub { font-size:clamp(15px,1.6vw,18px); color:var(--muted); max-width:52ch; margin-bottom:30px; }
+.hero-ctas { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:40px; }
+.hero-note { font-family:var(--font-m); font-size:11px; color:var(--dim); margin-top:-28px; margin-bottom:36px; }
+.stats { display:grid; grid-template-columns:repeat(4,minmax(0,auto)); gap:20px clamp(16px,2.5vw,34px); justify-content:start; }
+@media(max-width:520px){ .stats { grid-template-columns:repeat(2,minmax(0,auto)); } }
+.stat b { display:block; font-size:26px; font-weight:900; color:var(--bone); }
+.stat span { font-family:var(--font-m); font-size:10.5px; letter-spacing:0.1em; color:var(--dim); text-transform:uppercase; }
+@media(max-width:900px){ .hero { grid-template-columns:1fr; } }
+
+/* ── TERMINAL ─────────────────────────────────────────────── */
+.term { position:relative; z-index:1; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.5); }
+.term-bar { display:flex; align-items:center; gap:6px; padding:11px 14px; border-bottom:1px solid var(--border); background:var(--panel); }
+.term-bar i { width:10px; height:10px; border-radius:50%; background:var(--border); }
+.term-bar i:nth-child(1){ background:#ff5f57; } .term-bar i:nth-child(2){ background:#febc2e; } .term-bar i:nth-child(3){ background:#28c840; }
+.term-bar span { margin-left:8px; font-family:var(--font-m); font-size:10.5px; color:var(--dim); letter-spacing:0.08em; }
+.term-body { padding:18px 16px; font-family:var(--font-m); font-size:12px; line-height:1.75; min-height:262px; white-space:pre-wrap; word-break:break-word; }
+.t-dim{color:var(--dim);} .t-mag{color:var(--mag);} .t-ice{color:var(--ice);} .t-green{color:var(--green);} .t-amber{color:var(--amber);}
+.cursor { display:inline-block; width:7px; height:14px; background:var(--mag); vertical-align:-2px; animation:blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity:0; } }
+
+/* ── SECTIONS ─────────────────────────────────────────────── */
+section { position:relative; max-width:1200px; margin:0 auto; padding:clamp(60px,9vh,110px) clamp(16px,4vw,40px); }
+.sec-eyebrow { font-family:var(--font-m); font-size:11px; letter-spacing:0.22em; color:var(--mag); text-transform:uppercase; margin-bottom:14px; }
+h2 { font-weight:900; font-size:clamp(28px,4vw,44px); letter-spacing:-0.015em; line-height:1.1; margin-bottom:14px; }
+.sec-sub { color:var(--muted); max-width:60ch; margin-bottom:44px; }
+
+/* how it works */
+.steps { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; counter-reset:step; }
+.step { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:24px 20px; transition:border-color .3s var(--ease), transform .3s var(--ease); }
+.step:hover { border-color:var(--mag-mid); transform:translateY(-3px); }
+.step-num { font-family:var(--font-m); font-size:11px; color:var(--mag); letter-spacing:0.14em; margin-bottom:12px; }
+.step h3 { font-size:17px; font-weight:700; margin-bottom:8px; }
+.step p { font-size:13.5px; color:var(--muted); }
+@media(max-width:900px){ .steps { grid-template-columns:repeat(2,1fr);} }
+@media(max-width:540px){ .steps { grid-template-columns:1fr;} }
+
+/* bento features */
+.bento { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:26px 22px; grid-column:span 2; transition:border-color .3s var(--ease), transform .3s var(--ease); position:relative; overflow:hidden; }
+.card:hover { border-color:var(--mag-mid); transform:translateY(-3px); }
+.card.wide { grid-column:span 3; }
+.card-icon { font-size:20px; color:var(--mag); margin-bottom:14px; font-family:var(--font-m); }
+.card h3 { font-size:17px; font-weight:700; margin-bottom:8px; }
+.card p { font-size:13.5px; color:var(--muted); }
+.card .tag { position:absolute; top:18px; right:18px; font-family:var(--font-m); font-size:9.5px; letter-spacing:0.12em; color:var(--ice); border:1px solid rgba(0,196,255,0.3); border-radius:99px; padding:3px 8px; }
+@media(max-width:900px){ .card, .card.wide { grid-column:span 3; } }
+@media(max-width:620px){ .card, .card.wide { grid-column:span 6; } }
+
+/* privacy strip */
+.strip { background:linear-gradient(120deg, rgba(224,0,106,0.09), rgba(0,196,255,0.05)); border:1px solid var(--border); border-radius:12px; padding:clamp(26px,4vw,44px); display:grid; grid-template-columns:1.2fr 1fr; gap:28px; align-items:center; }
+.strip h2 { font-size:clamp(22px,3vw,32px); }
+.strip ul { list-style:none; display:grid; gap:12px; }
+.strip li { font-size:14px; color:var(--muted); padding-left:26px; position:relative; }
+.strip li::before { content:'✓'; position:absolute; left:0; color:var(--green); font-family:var(--font-m); }
+@media(max-width:760px){ .strip { grid-template-columns:1fr; } }
+
+/* pricing */
+.plans { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:stretch; }
+.plan { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:26px 22px; display:flex; flex-direction:column; position:relative; transition:border-color .3s var(--ease), transform .3s var(--ease); }
+.plan:hover { border-color:var(--mag-mid); transform:translateY(-3px); }
+.plan.featured { border-color:var(--mag); background:var(--mag-dim); }
+.plan-badge { position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--mag); color:#fff; font-family:var(--font-m); font-size:9.5px; letter-spacing:0.14em; padding:4px 10px; border-radius:99px; white-space:nowrap; }
+.plan-name { font-family:var(--font-m); font-size:11px; letter-spacing:0.16em; color:var(--dim); text-transform:uppercase; margin-bottom:12px; }
+.plan-price { font-size:36px; font-weight:900; }
+.plan-price sub { font-size:13px; font-weight:400; color:var(--dim); vertical-align:baseline; }
+.plan-note { font-family:var(--font-m); font-size:10.5px; color:var(--dim); margin:4px 0 18px; }
+.plan ul { list-style:none; display:grid; gap:9px; margin-bottom:22px; }
+.plan li { font-size:13px; color:var(--muted); padding-left:20px; position:relative; }
+.plan li::before { content:'✓'; position:absolute; left:0; color:var(--mag); font-family:var(--font-m); font-size:11px; }
+.plan .btn { margin-top:auto; width:100%; }
+.byok-note { text-align:center; font-family:var(--font-m); font-size:11px; color:var(--dim); margin-top:22px; }
+@media(max-width:980px){ .plans { grid-template-columns:repeat(2,1fr);} }
+@media(max-width:560px){ .plans { grid-template-columns:1fr;} }
+
+/* faq */
+.faq { max-width:760px; }
+.faq details { border:1px solid var(--border); border-radius:var(--r); background:var(--panel); margin-bottom:10px; overflow:hidden; }
+.faq summary { list-style:none; cursor:pointer; padding:18px 20px; font-weight:600; font-size:15px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.faq summary::-webkit-details-marker { display:none; }
+.faq summary::after { content:'+'; font-family:var(--font-m); color:var(--mag); font-size:18px; transition:transform .3s var(--ease); flex-shrink:0; }
+.faq details[open] summary::after { transform:rotate(45deg); }
+.faq .a { padding:0 20px 18px; color:var(--muted); font-size:14px; }
+
+/* CTA band */
+.cta-band { text-align:center; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:clamp(40px,7vw,70px) 24px; position:relative; overflow:hidden; }
+.cta-band::before { content:''; position:absolute; inset:-40%; background:radial-gradient(ellipse at 50% 120%, rgba(224,0,106,0.16), transparent 60%); pointer-events:none; }
+.cta-band > * { position:relative; }
+
+/* footer */
+footer.site { border-top:1px solid var(--border); padding:34px clamp(16px,4vw,40px); display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; max-width:1200px; margin:0 auto; }
+footer.site .cols { display:flex; gap:22px; flex-wrap:wrap; }
+footer.site a { font-family:var(--font-m); font-size:10.5px; letter-spacing:0.1em; color:var(--dim); text-decoration:none; text-transform:uppercase; }
+footer.site a:hover { color:var(--mag); }
+footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim); letter-spacing:0.08em; }
+
+/* cookie banner */
+#cookieBanner { position:fixed; left:16px; bottom:16px; z-index:2500; max-width:380px; background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:16px; box-shadow:0 16px 48px rgba(0,0,0,0.55); }
+#cookieBanner.hidden { display:none; }
+#cookieBanner p { font-size:12.5px; line-height:1.6; color:var(--muted); margin:0 0 10px; }
+#cookieBanner a { color:var(--ice); text-decoration:none; }
+#cookieBanner .btn { padding:9px 16px; font-size:13px; }
+@media(max-width:600px){ #cookieBanner { left:12px; right:12px; max-width:none; } }
+
+/* reveal on scroll */
+.reveal { opacity:0; transform:translateY(22px); transition:opacity .7s var(--ease), transform .7s var(--ease); }
+.reveal.in { opacity:1; transform:none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior:auto; }
+  *, *::before, *::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  .reveal { opacity:1; transform:none; }
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="logo" href="index.html" aria-label="BNDR VoiceEngine home">
+    <span class="logo-mark">BNDR</span>
+    <span class="logo-name">Voice<span>Engine</span></span>
+  </a>
+  <div class="nav-links" id="navLinks">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a class="btn btn-primary" href="app.html">Launch App</a>
+  </div>
+  <button class="nav-burger" id="navBurger" aria-label="Open menu" aria-expanded="false">☰</button>
+</nav>
+
+<header class="hero">
+  <div>
+    <div class="eyebrow">Voice Intelligence Engine</div>
+    <h1>Your voice.<br><em>Every AI.</em></h1>
+    <p class="hero-sub">Paste 150–600 words of your real writing. VoiceEngine performs a forensic 16-dimension analysis and builds a deployable voice profile — a machine JSON file any AI tool obeys, plus instructions written for humans. AI that finally sounds like you, not like AI.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary btn-lg" href="app.html">Start free — no card needed</a>
+      <a class="btn btn-lg" href="#how">See how it works</a>
+    </div>
+    <p class="hero-note">7-day free trial · 5 analyses/day · bring your own AI key</p>
+    <div class="stats">
+      <div class="stat"><b>16</b><span>voice dimensions</span></div>
+      <div class="stat"><b>12</b><span>enforceable filters</span></div>
+      <div class="stat"><b>3</b><span>AI providers</span></div>
+      <div class="stat"><b>2</b><span>synced outputs</span></div>
+    </div>
+  </div>
+  <div class="term reveal">
+    <div class="term-bar"><i></i><i></i><i></i><span>voice_profile.json</span></div>
+    <div class="term-body" id="termBody"></div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="sec-eyebrow reveal">How it works</div>
+  <h2 class="reveal">From writing sample to voice blueprint in four steps</h2>
+  <p class="sec-sub reveal">No training runs. No uploads to our servers. Your sample goes straight from your browser to your own AI provider and comes back decoded.</p>
+  <div class="steps">
+    <div class="step reveal"><div class="step-num">STEP 01</div><h3>Paste your writing</h3><p>An email, a post, a chapter — anything you actually wrote. 150–600 words is the sweet spot.</p></div>
+    <div class="step reveal"><div class="step-num">STEP 02</div><h3>Get decoded</h3><p>The engine dissects tone, rhythm, structure, vocabulary, and risk posture across 16 dimensions — with scores you can inspect and correct.</p></div>
+    <div class="step reveal"><div class="step-num">STEP 03</div><h3>Set the rules</h3><p>Pick intent, audience, and content type. Flip on hard filters like NO HYPE, NO HEDGING, NO AI TELLS — enforced, not suggested.</p></div>
+    <div class="step reveal"><div class="step-num">STEP 04</div><h3>Deploy anywhere</h3><p>Copy the machine file into ChatGPT, Claude, or any AI tool as a system prompt. Keep the human doc for your team.</p></div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="sec-eyebrow reveal">Features</div>
+  <h2 class="reveal">Built like an instrument,<br>not a toy</h2>
+  <p class="sec-sub reveal">Every output is validated, retried on failure, and quality-scored before you ship it.</p>
+  <div class="bento">
+    <div class="card wide reveal"><div class="card-icon">◈</div><h3>Forensic 16-dimension analysis</h3><p>Energy, formality, directness, specificity, confidence — plus signature moves, phrasing habits, and what you never say. Rendered as animated score bars you can audit and override before anything is generated.</p></div>
+    <div class="card wide reveal"><span class="tag">ENFORCED</span><div class="card-icon">⛔</div><h3>12 hard style filters</h3><p>NO HYPE, NO HEDGING, NO PADDING, NO AI TELLS and 8 more — written into the profile as rules, not vibes.</p></div>
+    <div class="card reveal"><div class="card-icon">⇄</div><h3>Machine + human outputs</h3><p>A strict JSON system prompt for AI tools, and a readable instruction doc for people. Always in sync, both exportable.</p></div>
+    <div class="card reveal"><div class="card-icon">◎</div><h3>AI quality check</h3><p>A second AI pass scores the profile on 5 dimensions and warns you below 70 — before you rely on it.</p></div>
+    <div class="card reveal"><div class="card-icon">☁</div><h3>Profiles that follow you</h3><p>Save voice profiles to your account and reload them on any device. Lifetime license holders can save on-device with no account at all.</p></div>
+    <div class="card wide reveal"><span class="tag">BYOK</span><div class="card-icon">⚿</div><h3>Your key. Your data. Your browser.</h3><p>Works with Anthropic, OpenAI, and DeepSeek using your own API key. Keys live only in the current tab session. Your writing goes to your provider — never to us.</p></div>
+        <div class="card wide reveal"><div class="card-icon">✆</div><h3>Mobile-first</h3><p>Every step, modal, and export works on a phone. Guided tour included — clear enough for an 8-year-old or an 80-year-old.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="strip reveal">
+    <div>
+      <div class="sec-eyebrow">Privacy by design</div>
+      <h2>We can't read your writing.<br>That's the architecture.</h2>
+    </div>
+    <ul>
+      <li>API keys stored in session memory only — gone when the tab closes</li>
+      <li>Writing samples sent directly from your browser to your AI provider</li>
+      <li>Only finished profiles you choose to save are stored</li>
+      <li>No ads, no trackers, no analytics scripts, no data resale</li>
+    </ul>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="sec-eyebrow reveal">Pricing</div>
+  <h2 class="reveal">Costs less than the words it saves you</h2>
+  <p class="sec-sub reveal">Comparable brand-voice tools run $29–$69 a month. VoiceEngine is $19 — because you bring your own AI key and we don't resell compute.</p>
+  <div class="plans">
+    <div class="plan reveal">
+      <div class="plan-name">Trial</div>
+      <div class="plan-price">$0</div>
+      <div class="plan-note">7 days · no card required</div>
+      <ul><li>5 analyses per day</li><li>All 16 dimensions + 12 filters</li><li>Machine + human outputs</li><li>All 3 AI providers</li></ul>
+      <a class="btn" href="app.html">Try it free</a>
+    </div>
+    <div class="plan reveal">
+      <div class="plan-name">Monthly</div>
+      <div class="plan-price" id="priceMonthly">$19<sub>/mo</sub></div>
+      <div class="plan-note" id="noteMonthly">Billed monthly</div>
+      <ul><li>50 analyses per day</li><li>Unlimited saved profiles</li><li>AI quality check audits</li><li>Cancel anytime</li></ul>
+      <a class="btn" href="app.html">Get Monthly</a>
+    </div>
+    <div class="plan featured reveal">
+      <div class="plan-badge">BEST VALUE — SAVE 35%</div>
+      <div class="plan-name">Annual</div>
+      <div class="plan-price" id="priceAnnual">$149<sub>/yr</sub></div>
+      <div class="plan-note" id="noteAnnual">$12.42/mo — save 35%</div>
+      <ul><li>Everything in Monthly</li><li>2 months free</li><li>Price locked for renewal</li><li>Cancel anytime</li></ul>
+      <a class="btn btn-primary" href="app.html">Get Annual</a>
+    </div>
+    <div class="plan reveal">
+      <div class="plan-name">Lifetime</div>
+      <div class="plan-price" id="priceLifetime">$99<sub> once</sub></div>
+      <div class="plan-note" id="noteLifetime">One payment. Yours forever.</div>
+      <ul><li>Unlimited analyses</li><li>License-key unlock via Gumroad</li><li>Works without an account</li><li>All future updates</li></ul>
+      <button class="btn" id="lifetimeBtn" type="button">Get Lifetime</button>
+    </div>
+  </div>
+  <p class="byok-note">All plans are BYOK — you connect your own Anthropic, OpenAI, or DeepSeek API key. Subscriptions are handled in-app after you sign in, so your plan links to your account automatically.</p>
+</section>
+
+<section id="faq">
+  <div class="sec-eyebrow reveal">FAQ</div>
+  <h2 class="reveal">Fair questions, straight answers</h2>
+  <div class="faq" style="margin-top:34px;">
+    <details class="reveal"><summary>Do I need my own AI key?</summary><div class="a">Yes. VoiceEngine drives your own Anthropic, OpenAI, or DeepSeek account. That's why it's cheap, and why we never see your writing. Keys take about 2 minutes to create and the app walks you through it.</div></details>
+    <details class="reveal"><summary>Which AI tools can use my voice profile?</summary><div class="a">Any tool that accepts a system prompt or custom instructions: ChatGPT, Claude, Gemini, Copilot, API integrations, agents — the machine file is plain JSON with an embedded system prompt.</div></details>
+    <details class="reveal"><summary>Is my writing stored anywhere?</summary><div class="a">Your sample goes from your browser to your AI provider and back. We store only the finished voice profiles you explicitly save — and lifetime users can keep even those on-device only.</div></details>
+    <details class="reveal"><summary>Can I cancel my subscription?</summary><div class="a">Anytime, in one click, from the account menu inside the app. You keep access until the end of the paid period. No emails, no phone calls, no retention scripts.</div></details>
+    <details class="reveal"><summary>How does the lifetime license work?</summary><div class="a">You buy once on Gumroad and get a license key. Paste it into the app's "Redeem access" screen — it verifies with Gumroad and unlocks unlimited use on that device, no account needed.</div></details>
+    <details class="reveal"><summary>Does it work on my phone?</summary><div class="a">Yes — the whole flow is mobile-first: analysis, filters, exports, saving, and the guided tour all work on any modern phone browser.</div></details>
+  </div>
+</section>
+
+<section>
+  <div class="cta-band reveal">
+    <div class="sec-eyebrow">Ready when you are</div>
+    <h2>Stop sounding like everyone's AI.</h2>
+    <p class="sec-sub" style="margin:10px auto 28px; max-width:46ch;">Your first voice profile takes about three minutes. The trial is free and doesn't ask for a card.</p>
+    <a class="btn btn-primary btn-lg" href="app.html">Launch VoiceEngine</a>
+  </div>
+</section>
+
+<footer class="site">
+  <span class="copy">© <span id="year"></span> BNDR LLC — ALL RIGHTS RESERVED</span>
+  <div class="cols">
+    <a href="app.html">App</a>
+    <a href="#pricing">Pricing</a>
+    <a href="terms.html">Terms</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="#" id="supportLink">Support</a>
+  </div>
+</footer>
+
+<div id="cookieBanner" class="hidden" role="dialog" aria-live="polite" aria-label="Privacy notice">
+  <p><strong>Quick note:</strong> this site saves your settings on your device so it can work. No ads. No tracking. No selling your data. <a href="privacy.html">How we handle privacy →</a></p>
+  <button class="btn btn-primary" onclick="acceptCookies()">Got it</button>
+</div>
+
+<script>
+const CFG = window.BNDR_CONFIG || {};
+
+// ── Pricing from config.js (single source of truth) ─────────
+(function () {
+  const p = CFG.PRICING || {};
+  const set = (id, noteId, plan) => {
+    const el = document.getElementById(id), note = document.getElementById(noteId);
+    if (el && p[plan]) el.innerHTML = p[plan].price + '<sub>' + p[plan].period + '</sub>';
+    if (note && p[plan] && p[plan].note) note.textContent = p[plan].note;
+  };
+  set('priceMonthly', 'noteMonthly', 'monthly');
+  set('priceAnnual', 'noteAnnual', 'annual');
+  set('priceLifetime', 'noteLifetime', 'lifetime');
+})();
+
+// ── Lifetime button: Gumroad if configured, else in-app redeem ─
+document.getElementById('lifetimeBtn').addEventListener('click', () => {
+  const url = CFG.GUMROAD && CFG.GUMROAD.buyUrl;
+  if (url) window.open(url, '_blank', 'noopener');
+  else window.location.href = 'app.html';
+});
+
+// ── Support link ─────────────────────────────────────────────
+(function () {
+  const a = document.getElementById('supportLink');
+  if (CFG.SUPPORT_EMAIL) a.href = 'mailto:' + CFG.SUPPORT_EMAIL;
+  else a.style.display = 'none';
+})();
+
+// ── Mobile nav ───────────────────────────────────────────────
+const burger = document.getElementById('navBurger');
+const links  = document.getElementById('navLinks');
+burger.addEventListener('click', () => {
+  const open = links.classList.toggle('open');
+  burger.setAttribute('aria-expanded', String(open));
+  burger.textContent = open ? '✕' : '☰';
+});
+links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  links.classList.remove('open');
+  burger.setAttribute('aria-expanded', 'false');
+  burger.textContent = '☰';
+}));
+
+// ── Reveal on scroll ─────────────────────────────────────────
+const io = ('IntersectionObserver' in window)
+  ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: 0.12 })
+  : null;
+document.querySelectorAll('.reveal').forEach(el => io ? io.observe(el) : el.classList.add('in'));
+
+// ── Terminal typing demo ─────────────────────────────────────
+const LINES = [
+  ['t-dim', '$ voiceengine analyze --sample "my_writing.txt"'],
+  ['t-ice', '▸ reading voice patterns… 16 dimensions'],
+  ['', '{'],
+  ['', '  "voice_identity": {'],
+  ['t-mag', '    "tone_primary": "direct",'],
+  ['t-mag', '    "energy_level": 74,'],
+  ['t-mag', '    "sentence_rhythm": "short-punch, long-build"'],
+  ['', '  },'],
+  ['t-amber', '  "active_filters": ["no_hype", "no_hedging", "no_ai_tells"],'],
+  ['t-ice', '  "system_prompt": "Write exactly as this author…"'],
+  ['', '}'],
+  ['t-green', '✓ profile ready — deploy to any AI'],
+];
+const body = document.getElementById('termBody');
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function renderStatic() {
+  body.innerHTML = LINES.map(([c, t]) => '<span class="' + c + '">' + t.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>').join('\n');
+}
+async function typeLoop() {
+  while (true) {
+    body.innerHTML = '';
+    for (const [c, t] of LINES) {
+      const span = document.createElement('span');
+      span.className = c;
+      body.appendChild(span);
+      const cur = document.createElement('i');
+      cur.className = 'cursor';
+      body.appendChild(cur);
+      for (let i = 0; i <= t.length; i++) {
+        span.textContent = t.slice(0, i);
+        await new Promise(r => setTimeout(r, 10 + Math.random() * 14));
+      }
+      cur.remove();
+      body.appendChild(document.createTextNode('\n'));
+    }
+    const cur = document.createElement('i');
+    cur.className = 'cursor';
+    body.appendChild(cur);
+    await new Promise(r => setTimeout(r, 6000));
+  }
+}
+if (reduced) renderStatic(); else typeLoop();
+
+// ── Cookie banner (shared key with the app) ──────────────────
+function acceptCookies() {
+  try { localStorage.setItem('bndr_consent', new Date().toISOString()); } catch (e) {}
+  document.getElementById('cookieBanner').classList.add('hidden');
+}
+(function () {
+  let ok = null;
+  try { ok = localStorage.getItem('bndr_consent'); } catch (e) {}
+  if (!ok) document.getElementById('cookieBanner').classList.remove('hidden');
+})();
+
+document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>

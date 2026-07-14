@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#090909">
+<meta name="description" content="BNDR VoiceEngine terms of service — plans, licenses, BYOK responsibilities, and fair-use rules.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
+<title>Terms of Service · BNDR VoiceEngine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root { --black:#090909; --panel:#141415; --bone:#F4F1EC; --muted:#b9b5ad; --dim:#7a766f; --border:#232325; --mag:#E0006A; --ice:#00C4FF; --font-m:'Space Mono',monospace; --r:8px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--black); color:var(--bone); font-family:'Outfit',sans-serif; font-weight:300; line-height:1.7; -webkit-font-smoothing:antialiased; }
+.nav { position:sticky; top:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:14px clamp(16px,4vw,40px); background:rgba(9,9,9,0.85); backdrop-filter:blur(14px); border-bottom:1px solid var(--border); }
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+.logo-mark { font-family:var(--font-m); font-weight:700; font-size:12px; letter-spacing:0.18em; color:#fff; background:var(--mag); padding:4px 7px; border-radius:4px; }
+.logo-name { font-weight:700; font-size:16px; } .logo-name span { color:var(--mag); }
+.nav a.back { font-size:13px; color:var(--muted); text-decoration:none; } .nav a.back:hover { color:var(--bone); }
+main { max-width:760px; margin:0 auto; padding:clamp(40px,7vh,70px) clamp(16px,4vw,40px) 80px; }
+.eyebrow { font-family:var(--font-m); font-size:11px; letter-spacing:0.22em; color:var(--mag); text-transform:uppercase; margin-bottom:14px; }
+h1 { font-weight:900; font-size:clamp(30px,5vw,44px); letter-spacing:-0.015em; margin-bottom:8px; }
+.updated { font-family:var(--font-m); font-size:11px; color:var(--dim); margin-bottom:40px; }
+h2 { font-weight:700; font-size:20px; margin:38px 0 10px; }
+p, li { color:var(--muted); font-size:15px; }
+ul { padding-left:22px; margin:10px 0; }
+li { margin-bottom:6px; }
+strong { color:var(--bone); font-weight:600; }
+a { color:var(--ice); text-decoration:none; } a:hover { text-decoration:underline; }
+.box { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:20px 22px; margin:24px 0; }
+footer { border-top:1px solid var(--border); padding:30px clamp(16px,4vw,40px); text-align:center; font-family:var(--font-m); font-size:10.5px; color:var(--dim); letter-spacing:0.08em; }
+footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a:hover { color:var(--mag); }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="logo" href="index.html"><span class="logo-mark">BNDR</span><span class="logo-name">Voice<span>Engine</span></span></a>
+  <a class="back" href="index.html">← Back to home</a>
+</nav>
+<main>
+  <div class="eyebrow">Legal</div>
+  <h1>Terms of Service</h1>
+  <div class="updated">LAST UPDATED: JULY 14, 2026</div>
+
+  <p>These terms govern your use of BNDR VoiceEngine (“the Service”), operated by BNDR LLC (“we”, “us”). By using the Service you agree to them. They're written to be readable — if anything is unclear, ask us before relying on it.</p>
+
+  <h2>1. What the Service is</h2>
+  <p>VoiceEngine analyzes writing samples you provide and generates voice-profile files (a machine-readable JSON file and a human-readable instruction document). It is a <strong>bring-your-own-key (BYOK)</strong> tool: analysis and generation run against an AI provider account (Anthropic, OpenAI, or DeepSeek) that <strong>you</strong> own and control.</p>
+
+  <div class="box">
+    <strong>BYOK means two things you're responsible for:</strong>
+    <ul style="margin-bottom:0;">
+      <li>Charges billed by your AI provider for the requests the Service makes on your behalf are yours. Typical profile runs cost a few cents, but pricing is set by your provider, not us.</li>
+      <li>Keeping your API keys valid and secure. The Service holds them only in your browser tab and cannot recover them for you.</li>
+    </ul>
+  </div>
+
+  <h2>2. Plans, trials, and billing</h2>
+  <ul>
+    <li><strong>Free trial</strong> — 7 days, up to 5 analyses per day, no payment method required.</li>
+    <li><strong>Pro subscriptions</strong> (monthly or annual) — billed through Stripe, up to 50 analyses per day. They renew automatically until canceled.</li>
+    <li><strong>Lifetime license</strong> — a one-time purchase through Gumroad that unlocks unlimited use on devices where you redeem your license key. “Lifetime” means the lifetime of the Service, including all updates to it while it operates.</li>
+    <li><strong>Gift/VIP codes</strong> — we may issue codes granting free access. They are non-transferable, may be limited or revoked in cases of abuse, and carry no cash value.</li>
+  </ul>
+
+  <h2>3. Cancellation and refunds</h2>
+  <p>Cancel a subscription anytime from the account menu in the app; access continues to the end of the paid period, then stops. Amounts already billed are non-refundable except where the law requires otherwise. Gumroad purchases follow Gumroad's refund process; refunded, charged-back, or disputed licenses are deactivated.</p>
+
+  <h2>4. Your content and your outputs</h2>
+  <ul>
+    <li>You keep all rights to the writing you submit and to the voice profiles the Service generates for you. Use them anywhere, commercially or otherwise.</li>
+    <li>You confirm you have the right to analyze the writing you submit. Don't submit someone else's writing to imitate them without their permission.</li>
+    <li>Your writing samples are processed by your AI provider under your account and their terms; they do not pass through our servers.</li>
+  </ul>
+
+  <h2>5. Acceptable use</h2>
+  <p>Don't use the Service to break the law, to impersonate a real person without their consent, to produce fraud or deception, to probe or disrupt the Service's infrastructure, or to resell access (including sharing gift codes or license keys publicly). We may suspend accounts that do.</p>
+
+  <h2>6. AI output disclaimer</h2>
+  <p>Voice profiles are generated by AI models. They are usually accurate and useful, but AI output can contain mistakes. Review profiles before relying on them; you are responsible for how you use generated content. The Service provides tools, not professional advice.</p>
+
+  <h2>7. Availability and changes</h2>
+  <p>We aim to keep the Service available and improving, and it also has an offline-tolerant Local Mode, but we can't promise uninterrupted operation. We may modify features over time; we won't materially reduce what a paid plan includes during a period you've already paid for. If we ever discontinue the Service entirely, files you've already exported remain yours and keep working — they're plain text.</p>
+
+  <h2>8. Warranty and liability</h2>
+  <p>The Service is provided “as is” without warranties of any kind, express or implied. To the maximum extent permitted by law, BNDR LLC's total liability for any claim related to the Service is limited to the amount you paid us in the 12 months before the claim. Nothing in these terms limits liability that cannot lawfully be limited.</p>
+
+  <h2>9. Termination</h2>
+  <p>You can stop using the Service and delete your account at any time. We may suspend or terminate access for breach of these terms; if we do so without cause for a paid plan, we'll refund the unused portion.</p>
+
+  <h2>10. Changes to these terms</h2>
+  <p>If we make material changes, we'll update the date above. Continued use after changes means acceptance.</p>
+
+  <h2>11. Contact</h2>
+  <p>Questions about these terms: <a id="contactEmail" href="#">email us</a>.</p>
+</main>
+<footer>
+  © <span id="year"></span> BNDR LLC
+  <div style="margin-top:10px;"><a href="index.html">Home</a><a href="app.html">App</a><a href="terms.html">Terms</a><a href="privacy.html">Privacy</a></div>
+</footer>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear();
+(function () {
+  var cfg = window.BNDR_CONFIG || {};
+  var a = document.getElementById('contactEmail');
+  if (cfg.SUPPORT_EMAIL) { a.href = 'mailto:' + cfg.SUPPORT_EMAIL; a.textContent = cfg.SUPPORT_EMAIL; }
+})();
+</script>
+</body>
+</html>

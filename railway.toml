@@ -1,0 +1,11 @@
+[build]
+builder       = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Railway calls /health every 15s to confirm the container is alive.
+# If it fails 3 times in a row the container is restarted.
+healthcheckPath    = "/health"
+healthcheckTimeout = 10
+restartPolicyType  = "on_failure"
+restartPolicyMaxRetries = 3
