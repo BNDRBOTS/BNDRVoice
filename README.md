@@ -1,224 +1,110 @@
-# Voice Engine
+# BNDR VoiceEngine
 
-**A forensic voice capture and profile generation tool.**  
-Paste a writing sample. Get a machine-readable voice blueprint and a human-readable instruction set — both engineered for direct use as AI system prompts.
+Release **3.1.0** of a frontend-first BYOK app that turns writing into a machine-readable voice profile and a human instruction document.
 
-Built by [BNDR](https://bndr.co).
+## Pages
 
----
+| File | Purpose |
+|---|---|
+| `index.html` | SaaS landing page (hero, features, pricing, FAQ, legal links) |
+| `app.html` | The VoiceEngine application (4-step flow, auth, paywall, tour) |
+| `privacy.html` | Privacy policy |
+| `terms.html` | Terms of service |
+| `config.js` | Runtime links, public client configuration, model IDs, prices, and access-code hashes |
+| `assets/` | Supplied BNDR logo, pinned GSAP/Supabase browser clients, and the shared sharp-glass visual system |
+| `version.json` | Machine-readable deployed release marker |
+| `supabase/` | Database schema and Edge Functions |
 
-## What It Does
+## Configure (`config.js`)
 
-Voice Engine reads a writing sample the way a typographer reads letterforms — every measurable pattern is evidence. It extracts tone, rhythm, sentence architecture, risk behavior, vocabulary register, and structural logic. Then it compiles those findings into a deployable voice profile: a JSON file and a plain-language instruction set that any AI tool can follow to write in that exact voice.
+Everything configurable lives in `window.BNDR_CONFIG` in `config.js`:
 
-The output is not a mood board. It is a deterministic specification.
+- **Supabase** — `SUPABASE_URL`, `SUPABASE_ANON_KEY` (already filled with the project's working values).
+- **Stripe** — `STRIPE.monthly`, `STRIPE.annual` payment links (filled), `STRIPE.portal` customer-portal login link (empty — paste yours from Stripe Dashboard → Settings → Billing → Customer portal; the in-app “Manage Billing” item appears once set).
+- **Gumroad (lifetime $99)** — `GUMROAD.buyUrl` (your product page URL) and `GUMROAD.productId` (from the product's edit page). Both empty until you create the product; until then the Lifetime buttons route users to the redeem screen, which still accepts gift codes.
+- **Pricing display** — `PRICING` controls what prices render on the landing page and in-app paywall. Change numbers here (and in Stripe/Gumroad) to reprice.
+- **Support email** — `SUPPORT_EMAIL`.
 
----
+## Access passes
 
-## How It Works
+Two mechanisms, both handled by the in-app **Redeem Access** screen:
 
-**Four steps. No setup. No backend.**
+1. **Gift codes** — `GIFT_CODE_HASHES` holds SHA-256 hashes only; do not commit plaintext codes.
+   Mint a new code by running this in any browser console on the site:
+   ```js
+   bndrHashCode('YOUR-NEW-CODE')  // prints the hash to add to GIFT_CODE_HASHES
+   ```
+   or with Node:
+   ```bash
+   node -e "console.log(require('crypto').createHash('sha256').update('YOUR-NEW-CODE'.trim().toUpperCase()).digest('hex'))"
+   ```
+2. **Gumroad license keys** — verified live against Gumroad's license API (refunded/disputed keys are rejected).
 
+Redeemed passes unlock unlimited use on that device, no account required. Pass holders get on-device profile storage (up to 20 profiles).
+
+Client-side gift-code checks are a convenience mechanism, not tamper-proof authorization: a determined visitor controls the JavaScript and local storage. Put entitlements behind a server-side check if they must resist deliberate bypass.
+
+## Architecture
+
+- **Static multi-page HTML** — no build step, no framework, deploys anywhere.
+- **Supabase** — auth, Postgres (subscriptions, usage counts, saved profiles), and two edge functions: `ai-proxy` (JWT-verified DeepSeek relay) and `stripe-webhook` (subscription sync). Schema in `supabase/schema.sql`.
+- **BYOK AI calls** — Anthropic Sonnet 5 and OpenAI GPT-5.6 Luna are called directly from the browser with a tab-scoped key. DeepSeek V4 Flash goes through the authenticated `ai-proxy` Edge Function because of browser CORS; its request body is forwarded and not stored by the function.
+- **Local Mode failsafe** — if the Supabase client library or configuration cannot initialize, core work stays on-device and cloud actions return friendly errors.
+- **Plan limits** — trial 5/day for 7 days; Pro 50/day; pass holders unlimited.
+
+## Deploy
+
+### Railway / any Docker host
+```bash
+docker build -t voiceengine .
+docker run --rm -p 8080:8080 -e PORT=8080 voiceengine
 ```
-Step 1 — Sample     Paste 150–600 words of real writing
-Step 2 — Analysis   AI reads the sample; extracts 16 voice dimensions
-Step 3 — Configure  Set intent, audience, content type, enforceable filters
-Step 4 — Generate   Two synced outputs: machine JSON + human instructions
-```
-
-Everything runs in the browser. API keys are stored in `sessionStorage` only — they clear when the tab closes and never leave your machine.
-
----
-
-## Outputs
-
-### Machine File (JSON)
-A structured voice blueprint with seven top-level sections:
-
-| Field | Contents |
-|---|---|
-| `voice_identity` | one-line summary, tone stack, energy, formality, risk tolerance |
-| `writing_rules` | sentence structure, paragraph structure, openings, closings, rhythm, transitions |
-| `vocabulary` | register, preferred patterns (4–6), banned words (10–14), brand words (3–5) |
-| `structural_logic` | argument style, evidence preference, tension handling, opinion expression |
-| `active_filters` | all enforced filters with their rules |
-| `context` | goal, audience, content type, avoid topics |
-| `system_prompt` | 250–400 word copy-paste-ready system prompt for any AI tool |
-
-### Human Instructions
-A formatted reference document covering every dimension. Includes the system prompt in a styled code block.
-
-### Quality Check
-An AI-scored audit comparing the generated profile against the original sample across five dimensions: tone accuracy, rhythm capture, vocabulary match, filter coverage, and drift resistance. Flags automatically if the overall score falls below 70.
-
----
-
-## Enforceable Filters
-
-Twelve hard behavioral constraints. Default active: `NO HYPE`, `NO HEDGING`, `NO PADDING`, `NO AI TELLS`.
-
-| Filter | What It Blocks |
-|---|---|
-| NO HYPE | Superlatives, overclaiming, excitement inflation |
-| NO HEDGING | might / could / perhaps weasel words |
-| NO PADDING | Filler phrases and transitional fluff |
-| NO AI TELLS | AI-fingerprint vocabulary (delve, leverage, etc.) |
-| NO PASSIVE VOICE | Passive construction throughout |
-| NO JARGON | Buzzwords and corporate-speak |
-| NO SOFT CLOSES | Apologetic or tentative endings |
-| NO OVER-EXPLAINING | Restating what was just said |
-| NO FILLER OPENERS | "In today's world…" and similar throat-clears |
-| NO EM-DASH ABUSE | Em-dash usage limited to intentional rhythm |
-| NO DEFAULT LISTS | Reflexive bullet points over prose |
-| NO FALSE ENTHUSIASM | Exclamation marks and hollow positivity |
-
----
-
-## Supported Writing Contexts
-
-**Content & Marketing**
-Social media posts · Email newsletters · Sales copy / landing pages · Blog / long-form articles · Scripts / video content · Personal brand content · Mixed / general
-
-**Business & Internal**
-Internal business comms · Client proposals / pitches · Executive communications / thought leadership · Investor relations / shareholder communications · Press releases / corporate announcements
-
-**Legal & Compliance**
-Terms of service / legal agreements · Privacy policies / compliance documents · Contract and procurement language · Regulatory filings / government submissions · Policy documents / internal governance
-
----
-
-## AI Providers
-
-Three providers. Switch between them in the key modal without losing your session.
-
-| Provider | Model | Notes |
-|---|---|---|
-| Anthropic | `claude-sonnet-4-20250514` | Default. Highest analysis fidelity. |
-| OpenAI | `gpt-4o` | Browser-direct, no proxy required. |
-| DeepSeek | `deepseek-chat` (V3.2) | 128K context. CORS varies by browser — use a proxy if blocked. |
-
-API keys are session-only. They are never sent to any server other than the respective AI provider's API.
-
----
-
-## Profiles
-
-Up to 20 profiles saved to `localStorage`. Each profile stores:
-- The full machine JSON
-- The original voice analysis
-- The first 500 characters of the writing sample (for QC re-runs)
-- Timestamp and profile name
-
-Profiles can be loaded, overwritten, or deleted from the bottom bar.
-
----
-
-## Technical Spec
-
-| Property | Value |
-|---|---|
-| Architecture | Single-file HTML — zero dependencies, zero build step |
-| Storage | `sessionStorage` (API keys) · `localStorage` (profiles, max 20) |
-| Fonts | Outfit (display) · Space Mono (mono) — loaded via Google Fonts |
-| Minimum sample | 50 words to unlock analysis |
-| Recommended sample | 150–600 words |
-| Token budget — analysis | 1,500 |
-| Token budget — generate | 2,500 |
-| Token budget — QC | 800 |
-| Browser support | All modern browsers (Chromium, Firefox, Safari) |
-
----
-
-## Deployment
-
-**Local:** Download the HTML file. Open in any browser. Done.
-
-**Hosted:** Drop the single HTML file into any static host — Netlify, Vercel, GitHub Pages, S3, Cloudflare Pages. No server, no build process, no environment variables.
+The container binds to Railway's injected `PORT`; `railway.toml` checks `/health`. Verify a deployment with:
 
 ```bash
-# GitHub Pages example
-git init
-git add APEXSound_VoiceEngine.html index.html
-git commit -m "deploy"
-git push origin main
-# Enable Pages in repo settings → branch: main
+curl -i https://YOUR-SERVICE.up.railway.app/health
+curl -s https://YOUR-SERVICE.up.railway.app/version.json
 ```
 
-Before deploying: replace the two placeholders in the file.
+Both should report release `3.1.0`. Railway activates a new deployment only after the healthcheck returns HTTP 200, so a failed new build leaves the previous healthy version serving traffic.
 
-```html
-<!-- Line ~477: logo -->
-<img src="YOUR_LOGO_URL_HERE" alt="Brand Logo" class="logo-img">
+### Any static host (Netlify, Vercel, S3, GitHub Pages)
+Upload the four HTML files, `config.js`, `version.json`, and `assets/`.
 
-<!-- Footer: privacy policy -->
-<a href="YOUR_DROPBOX_LINK_HERE">PRIVACY POLICY</a>
+### Supabase setup
+1. Run `supabase/schema.sql` in the SQL editor.
+2. Deploy edge functions: `supabase functions deploy ai-proxy` and `supabase functions deploy stripe-webhook`.
+3. Set the Stripe webhook secret and API key as function secrets; point a Stripe webhook at the `stripe-webhook` function URL for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, and `invoice.payment_failed`.
+
+The schema is idempotent, enables RLS, grants only the required authenticated operations, and binds usage increments to `auth.uid()`. Apply it before relying on the cloud plan gate.
+
+## Verify before deployment
+
+```bash
+npm ci
+npm test
+npm run test:deno
+npx playwright install chromium
+npm run test:browser
 ```
 
----
+The suite checks HTML structure and scripts, local asset references, release/model consistency, Nginx/Railway health contracts, security-sensitive SQL, both Edge Functions, and the absence of the retired grain treatment. The browser pass verifies desktop/mobile layouts, navigation, the supplied logo, an entire mocked AI analysis/generation/quality-check flow, downloads, saved profiles, accessibility, and XSS regression cases without calling a live AI provider. GitHub Actions also builds the real Docker image, runs it with a non-default injected port, checks `/health`, verifies the release header, and confirms missing pages return 404.
 
-## Project Structure
+## Stripe notes
 
-```
-APEXSound_VoiceEngine.html
-│
-├── <style>
-│   ├── Design tokens (:root CSS variables)
-│   ├── Layout, header, step progress
-│   ├── Modals (key, load profile)
-│   ├── Form elements, filters, output tabs
-│   ├── Quality check, bottom bar, footer
-│   └── Animations, utilities
-│
-├── <body>
-│   ├── Key modal (3-provider switcher)
-│   ├── App container
-│   │   ├── Header (logo + status + key button)
-│   │   ├── Step progress bar
-│   │   ├── Step 1: Writing sample + context
-│   │   ├── Step 2: Analysis output + override
-│   │   ├── Step 3: Configure (parameters + filters)
-│   │   └── Step 4: Output (machine / human / QC tabs)
-│   ├── Footer (copyright + privacy policy)
-│   ├── Bottom bar (actions + provider badge)
-│   └── Load profile modal
-│
-└── <script>
-    ├── State object
-    ├── Context → content type auto-map
-    ├── Filter definitions (12)
-    ├── Provider switching (Anthropic / DeepSeek / OpenAI)
-    ├── API call functions (callClaude / callDeepSeek / callOpenAI)
-    ├── Analysis: runAnalysis → renderAnalysis
-    ├── Generate: runGenerate → buildHumanDoc → renderOutput
-    ├── Quality check: runQualityCheck → renderQuality
-    ├── Save / load / delete profiles
-    └── Utilities (toast, download, export, slug, selectText)
-```
+Payment links pass the signed-in user's email (`prefilled_email`) and user ID (`client_reference_id`) so the webhook can attach the subscription to the right account. After checkout the app polls for activation when it sees `?upgraded=1`.
 
----
+## Data stored in the browser
 
-## Design System
+| Key | Storage | Purpose |
+|---|---|---|
+| `apex_key`, `apex_oai_key`, `apex_ds_key`, `apex_provider` | session | API keys + provider (tab-only) |
+| `bndr_pass` | local | Redeemed access pass |
+| `bndr_profiles` | local | On-device profiles (pass holders / Local Mode) |
+| `bndr_local_usage` | local | Local Mode daily counter |
+| `bndr_consent` | local | Cookie-notice acknowledgment |
+| `bndr_tour_done` | local | Guided tour completion |
 
-Built on the BNDR design token set.
+## Pricing source of truth
 
-```css
---black:   #090909   /* base background */
---surface: #0e0e0f   /* primary surface */
---panel:   #141415   /* panel background */
---panel2:  #1a1a1c   /* input background */
---bone:    #F4F1EC   /* primary text */
---mag:     #E0006A   /* brand accent — action, active state */
---ice:     #00C4FF   /* confirmation, pass state */
---amber:   #F5A623   /* warning */
---red:     #FF3B3B   /* error */
-```
-
-Typography: `Outfit` (weights 200–900) for display and UI. `Space Mono` for labels, code, metadata, and monospace panels.
-
----
-
-## License
-
-© BNDR. All rights reserved.  
-This software is proprietary. Redistribution, resale, or modification without written permission is prohibited.  
-[Privacy Policy](#)
+Keep the displayed values in `config.js` synchronized with the actual Stripe payment-link prices and the future Gumroad product. The application deliberately does not infer or advertise checkout prices that cannot be verified from those providers.

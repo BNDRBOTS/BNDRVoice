@@ -1,0 +1,151 @@
+/*
+ * BNDR glass system
+ * Crisp optical layers, hard edge highlights, and zero grain overlays.
+ * Motion is progressive enhancement; the interface remains complete without JS.
+ */
+:root {
+  --glass-fill: linear-gradient(145deg, rgba(255,255,255,0.065), rgba(255,255,255,0.018) 52%, rgba(0,196,255,0.025));
+  --glass-fill-strong: linear-gradient(145deg, rgba(255,255,255,0.09), rgba(255,255,255,0.025) 48%, rgba(224,0,106,0.045));
+  --glass-edge: rgba(255,255,255,0.14);
+  --glass-edge-hot: rgba(255,255,255,0.24);
+  --glass-shadow: 0 22px 70px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.11), inset 1px 0 0 rgba(255,255,255,0.035);
+  --glass-shadow-tight: 0 12px 38px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.1);
+  --shine-x: 24%;
+  --shine-y: 12%;
+}
+
+body {
+  background-color: #050506;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px),
+    linear-gradient(135deg, #050506 0%, #09090b 55%, #050506 100%);
+  background-size: 48px 48px, 48px 48px, auto;
+}
+
+/* Remove the previous paper/grain treatment everywhere. */
+body::before,
+body::after {
+  display: none !important;
+  content: none !important;
+}
+
+.brand-logo {
+  display: block;
+  width: clamp(118px, 11vw, 158px);
+  height: auto;
+  aspect-ratio: 797 / 230;
+  object-fit: contain;
+  /* The supplied transparent artwork is dark; this renders it cleanly on black. */
+  filter: brightness(0) invert(1) drop-shadow(0 0 12px rgba(224,0,106,0.18));
+  opacity: 0.98;
+  transform: translateZ(0);
+}
+
+.brand-logo--app { width: clamp(124px, 16vw, 166px); }
+.brand-logo--legal { width: clamp(112px, 14vw, 150px); }
+
+.glass-surface,
+:where(.term, .card, .step, .plan, .strip, .cta-band, .panel, .modal, .filter-card, .analysis-card, .output-card, .quality-panel) {
+  --shine-x: 24%;
+  --shine-y: 12%;
+  position: relative;
+  background: var(--glass-fill);
+  border-color: var(--glass-edge);
+  box-shadow: var(--glass-shadow-tight);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  isolation: isolate;
+}
+
+:where(.term, .card, .step, .plan, .strip, .cta-band, .panel, .modal, .filter-card, .analysis-card, .output-card, .quality-panel)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at var(--shine-x) var(--shine-y), rgba(255,255,255,0.13), transparent 27%),
+    linear-gradient(118deg, rgba(255,255,255,0.055), transparent 28%, transparent 72%, rgba(0,196,255,0.025));
+  opacity: 0.72;
+}
+
+:where(.term, .card, .step, .plan, .strip, .cta-band, .panel, .modal, .filter-card, .analysis-card, .output-card, .quality-panel):hover {
+  border-color: var(--glass-edge-hot);
+}
+
+.nav {
+  background: rgba(5,5,6,0.8) !important;
+  border-bottom-color: rgba(255,255,255,0.11) !important;
+  box-shadow: 0 10px 38px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(255,255,255,0.035);
+  backdrop-filter: blur(20px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+}
+
+.hero::before {
+  display: block !important;
+  content: '' !important;
+  top: 22% !important;
+  left: -2% !important;
+  width: 72% !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(224,0,106,0.88), rgba(255,255,255,0.55), transparent) !important;
+  filter: none !important;
+  opacity: 0.7;
+  animation: bndr-scan-x 8s cubic-bezier(.16,1,.3,1) infinite alternate !important;
+}
+
+.hero::after {
+  display: block !important;
+  content: '' !important;
+  top: 7% !important;
+  right: 8% !important;
+  width: 1px !important;
+  height: 68% !important;
+  background: linear-gradient(180deg, transparent, rgba(0,196,255,0.8), rgba(255,255,255,0.45), transparent) !important;
+  filter: none !important;
+  opacity: 0.55;
+  animation: bndr-scan-y 10s cubic-bezier(.16,1,.3,1) infinite alternate !important;
+}
+
+.btn-primary {
+  background-image: linear-gradient(118deg, #b90058 0%, #e0006a 48%, #ff2c8f 52%, #c80060 100%);
+  background-size: 220% 100%;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 10px 32px rgba(224,0,106,0.22);
+}
+
+.btn-primary:hover {
+  background-position: 100% 0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.36), 0 14px 38px rgba(224,0,106,0.32);
+}
+
+.term,
+.cta-band,
+.modal {
+  background: var(--glass-fill-strong);
+  box-shadow: var(--glass-shadow);
+}
+
+@keyframes bndr-scan-x {
+  from { transform: translate3d(-4%, 0, 0); opacity: 0.32; }
+  to { transform: translate3d(15%, 0, 0); opacity: 0.82; }
+}
+
+@keyframes bndr-scan-y {
+  from { transform: translate3d(0, -6%, 0); opacity: 0.25; }
+  to { transform: translate3d(0, 14%, 0); opacity: 0.68; }
+}
+
+@media (max-width: 640px) {
+  body { background-size: 34px 34px, 34px 34px, auto; }
+  .brand-logo { width: 126px; }
+  .brand-logo--app { width: 132px; }
+  .hero::after { right: 4% !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero::before,
+  .hero::after { animation: none !important; }
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}
