@@ -1,0 +1,6 @@
+{
+  "lock": "./deno.lock",
+  "compilerOptions": {
+    "strict": true
+  }
+}

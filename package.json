@@ -1,0 +1,22 @@
+{
+  "name": "bndr-voiceengine",
+  "version": "3.1.0",
+  "private": true,
+  "description": "Verification suite for the BNDR VoiceEngine static application",
+  "scripts": {
+    "preview": "node tests/server.mjs",
+    "test": "npm run test:contracts && npm run test:html",
+    "test:browser": "node --test tests/browser.test.mjs",
+    "test:contracts": "node --test tests/site.test.mjs",
+    "test:deno": "deno check --config supabase/functions/deno.json --node-modules-dir=auto supabase/functions/ai-proxy/index.ts supabase/functions/stripe-webhook/index.ts",
+    "test:html": "html-validate index.html app.html privacy.html terms.html"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.12.1",
+    "html-validate": "11.5.6",
+    "playwright": "1.61.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

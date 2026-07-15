@@ -4,1758 +4,478 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#090909">
-<title>Voice Engine</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<meta name="description" content="BNDR VoiceEngine turns your writing into a deployable voice profile. Bring your own AI key; samples and keys are never stored by BNDR.">
+<meta property="og:title" content="BNDR VoiceEngine — Your voice. Every AI.">
+<meta property="og:description" content="Paste 150–600 words. Get a forensic 16-dimension voice profile as a machine JSON file plus human instructions. Works with Anthropic, OpenAI, and DeepSeek.">
+<meta property="og:type" content="website">
+<meta name="application-version" content="3.1.0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
+<title>BNDR VoiceEngine — Your voice. Every AI.</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="assets/gsap.min.js" defer></script>
+<script src="assets/glass.js" defer></script>
 <style>
-/* ══ TOKENS ══════════════════════════════════════════════════ */
 :root {
-  --black:   #090909;
-  --surface: #0e0e0f;
-  --panel:   #141415;
-  --panel2:  #1a1a1c;
-  --border:  rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.12);
-  --bone:    #F4F1EC;
-  --muted:   rgba(244,241,236,0.42);
-  --dim:     rgba(244,241,236,0.22);
-  --mag:     #E0006A;
-  --mag-dim: rgba(224,0,106,0.10);
-  --mag-mid: rgba(224,0,106,0.28);
-  --mag-glow:rgba(224,0,106,0.18);
-  --ice:     #00C4FF;
-  --amber:   #F5A623;
-  --red:     #FF3B3B;
-  --font-d:  'Outfit', sans-serif;
-  --font-m:  'Space Mono', monospace;
-  --r:       8px;
-  --ease:    cubic-bezier(0.16,1,0.3,1);
+  --black:#090909; --surface:#0e0e0f; --panel:#141415; --panel2:#1a1a1c;
+  --bone:#F4F1EC; --muted:#b9b5ad; --dim:#7a766f; --border:#232325;
+  --mag:#E0006A; --mag-mid:rgba(224,0,106,0.45); --mag-dim:rgba(224,0,106,0.08);
+  --ice:#00C4FF; --amber:#F5A623; --green:#00D68F;
+  --font-d:'Outfit',sans-serif; --font-m:'Space Mono',monospace;
+  --r:8px; --ease:cubic-bezier(0.16,1,0.3,1);
 }
-*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
-html { scroll-behavior:smooth; }
-body {
-  background: var(--black);
-  color: var(--bone);
-  font-family: var(--font-d);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-::-webkit-scrollbar { width:4px; }
-::-webkit-scrollbar-track { background: var(--black); }
-::-webkit-scrollbar-thumb { background: var(--mag-mid); border-radius:2px; }
-::selection { background: var(--mag-mid); color: var(--bone); }
-a { color:inherit; text-decoration:none; }
-button { background:none; border:none; cursor:pointer; color:inherit; font-family:var(--font-d); }
-textarea, input, select { font-family:var(--font-d); }
-:focus-visible { outline: 1px solid var(--mag); outline-offset: 3px; }
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; overflow-x:clip; }
+body { background:var(--black); color:var(--bone); font-family:var(--font-d); font-weight:300; line-height:1.6; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+::selection { background:var(--mag); color:#fff; }
+a { color:inherit; }
 
-/* ══ GRAIN ══════════════════════════════════════════════════ */
-body::after {
-  content:''; position:fixed; inset:0; z-index:999; pointer-events:none; opacity:0.025;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.80' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:250px 250px;
-}
-
-/* ══ LAYOUT ══════════════════════════════════════════════════ */
-.app { max-width:960px; margin:0 auto; padding:0 20px 80px; }
-
-/* ══ HEADER ══════════════════════════════════════════════════ */
-.header {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:28px 0 24px; border-bottom:1px solid var(--border); margin-bottom:32px;
-}
-.logo { display:flex; align-items:baseline; gap:10px; }
-.logo-mark { font-size:11px; font-family:var(--font-m); color:var(--mag); letter-spacing:0.18em; text-transform:uppercase; }
-.logo-name { font-size:22px; font-weight:900; letter-spacing:-0.02em; }
+/* ── NAV ─────────────────────────────────────────────────── */
+.nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:14px clamp(16px,4vw,40px); background:rgba(9,9,9,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--border); }
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.logo-mark { font-family:var(--font-m); font-weight:700; font-size:12px; letter-spacing:0.18em; color:#fff; background:var(--mag); padding:4px 7px; border-radius:4px; }
+.logo-name { font-weight:700; font-size:16px; letter-spacing:0.02em; }
 .logo-name span { color:var(--mag); }
-.header-right { display:flex; align-items:center; gap:12px; }
-.status-pill {
-  display:flex; align-items:center; gap:7px;
-  padding:5px 12px; border-radius:20px;
-  border:1px solid var(--border2); font-size:11px;
-  font-family:var(--font-m); letter-spacing:0.08em;
-  color:var(--muted); transition: all 0.3s var(--ease);
+.nav-links { display:flex; align-items:center; gap:26px; }
+.nav-links a { font-size:13.5px; color:var(--muted); text-decoration:none; transition:color .2s var(--ease); }
+.nav-links a:hover { color:var(--bone); }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-d); font-weight:600; font-size:14px; padding:12px 22px; border-radius:var(--r); border:1px solid var(--border); background:var(--panel); color:var(--bone); cursor:pointer; text-decoration:none; transition:all .25s var(--ease); }
+.btn:hover { border-color:var(--mag-mid); transform:translateY(-1px); }
+.btn-primary { background:var(--mag); border-color:var(--mag); color:#fff; }
+.btn-primary:hover { box-shadow:0 8px 32px rgba(224,0,106,0.35); }
+.btn-lg { padding:15px 28px; font-size:15px; }
+.nav .btn { padding:9px 16px; font-size:13px; }
+.nav-burger { display:none; background:none; border:1px solid var(--border); border-radius:6px; color:var(--bone); font-size:18px; width:38px; height:38px; cursor:pointer; }
+@media(max-width:760px){
+  .nav-links { position:fixed; top:63px; left:0; right:0; flex-direction:column; align-items:stretch; gap:0; background:rgba(9,9,9,0.97); border-bottom:1px solid var(--border); display:none; }
+  .nav-links.open { display:flex; }
+  .nav-links a { padding:15px 20px; border-top:1px solid var(--border); font-size:15px; }
+  .nav-links .btn { margin:14px 20px; }
+  .nav-burger { display:block; }
 }
-.status-dot {
-  width:7px; height:7px; border-radius:50%;
-  background: var(--muted); flex-shrink:0;
-  transition: background 0.3s;
-}
-.status-pill.ready { border-color: rgba(0,196,255,0.3); color:var(--ice); }
-.status-pill.ready .status-dot { background:var(--ice); box-shadow:0 0 6px var(--ice); animation: pulse-ice 2s infinite; }
-.status-pill.working { border-color: rgba(224,0,106,0.3); color:var(--mag); }
-.status-pill.working .status-dot { background:var(--mag); animation: spin-dot 0.8s linear infinite; }
-.status-pill.error { border-color: rgba(255,59,59,0.3); color:var(--red); }
-.status-pill.error .status-dot { background:var(--red); }
-@keyframes pulse-ice { 0%,100%{opacity:1} 50%{opacity:0.5} }
-@keyframes spin-dot { 0%{transform:scale(1)} 50%{transform:scale(0.3)} 100%{transform:scale(1)} }
 
-.btn-key {
-  padding:6px 14px; border-radius:var(--r); font-size:11px; font-family:var(--font-m);
-  border:1px solid var(--border2); color:var(--muted); letter-spacing:0.06em;
-  transition: all 0.2s; cursor:pointer;
+/* ── HERO ────────────────────────────────────────────────── */
+.hero { position:relative; padding:clamp(116px,14vh,156px) clamp(16px,4vw,40px) clamp(56px,6vh,76px); max-width:1200px; margin:0 auto; display:grid; grid-template-columns:minmax(0,1.08fr) minmax(360px,0.92fr); gap:clamp(40px,5vw,64px); align-items:center; }
+.hero > * { min-width:0; }
+.hero::before { content:''; position:absolute; top:-20%; left:0; width:70%; height:80%; background:radial-gradient(ellipse at center, rgba(224,0,106,0.14), transparent 65%); pointer-events:none; filter:blur(20px); animation:aurora 14s ease-in-out infinite alternate; }
+.hero::after { content:''; position:absolute; top:0; right:0; width:55%; height:70%; background:radial-gradient(ellipse at center, rgba(0,196,255,0.08), transparent 65%); pointer-events:none; filter:blur(24px); animation:aurora 18s ease-in-out infinite alternate-reverse; }
+@keyframes aurora { from { transform:translate3d(0,0,0) scale(1); } to { transform:translate3d(4%,6%,0) scale(1.12); } }
+.eyebrow { font-family:var(--font-m); font-size:11px; letter-spacing:0.22em; color:var(--mag); text-transform:uppercase; margin-bottom:18px; }
+h1 { font-weight:900; font-size:clamp(38px,6vw,68px); line-height:1.04; letter-spacing:-0.02em; margin-bottom:20px; }
+h1 em { font-style:normal; color:var(--mag); }
+.hero-sub { font-size:clamp(15px,1.6vw,18px); color:var(--muted); max-width:52ch; margin-bottom:30px; }
+.hero-ctas { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:40px; }
+.hero-note { font-family:var(--font-m); font-size:11px; color:var(--dim); margin-top:-28px; margin-bottom:36px; }
+.stats { display:grid; grid-template-columns:repeat(4,minmax(0,auto)); gap:20px clamp(16px,2.5vw,34px); justify-content:start; }
+@media(max-width:520px){ .stats { grid-template-columns:repeat(2,minmax(0,auto)); } }
+.stat b { display:block; font-size:26px; font-weight:900; color:var(--bone); }
+.stat span { font-family:var(--font-m); font-size:10.5px; letter-spacing:0.1em; color:var(--dim); text-transform:uppercase; }
+@media(max-width:900px){
+  .hero { grid-template-columns:minmax(0,1fr); gap:48px; padding-top:clamp(108px,14vh,132px); padding-bottom:56px; }
+  .hero > div:first-child { width:100%; max-width:680px; justify-self:center; }
+  .term { width:100%; max-width:680px; justify-self:center; }
 }
-.btn-key:hover { border-color:var(--mag-mid); color:var(--bone); }
 
-/* ══ STEP PROGRESS ═══════════════════════════════════════════ */
-.steps {
-  display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
-  background:var(--border); border:1px solid var(--border);
-  border-radius:var(--r); overflow:hidden; margin-bottom:32px;
-}
-.step-item {
-  background:var(--surface); padding:12px 16px;
-  display:flex; align-items:center; gap:10px; cursor:pointer;
-  transition: background 0.3s; position:relative;
-}
-.step-item:hover { background:var(--panel); }
-.step-item.active { background:var(--panel2); }
-.step-item.done { background:var(--surface); }
-.step-num {
-  width:24px; height:24px; border-radius:50%;
-  border:1px solid var(--border2); display:flex; align-items:center; justify-content:center;
-  font-size:11px; font-family:var(--font-m); flex-shrink:0;
-  color:var(--muted); transition:all 0.3s;
-}
-.step-item.active .step-num { border-color:var(--mag); color:var(--mag); box-shadow:0 0 10px var(--mag-glow); }
-.step-item.done .step-num { border-color:var(--ice); color:var(--ice); background:rgba(0,196,255,0.08); }
-.step-info { min-width:0; }
-.step-label { font-size:9px; font-family:var(--font-m); color:var(--dim); letter-spacing:0.14em; text-transform:uppercase; }
-.step-name { font-size:13px; font-weight:600; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.step-item.active .step-name { color:var(--bone); }
+/* ── TERMINAL ─────────────────────────────────────────────── */
+.term { position:relative; z-index:1; background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; box-shadow:0 32px 80px rgba(0,0,0,0.5); }
+.term-bar { display:flex; align-items:center; gap:6px; padding:11px 14px; border-bottom:1px solid var(--border); background:var(--panel); }
+.term-bar i { width:10px; height:10px; border-radius:50%; background:var(--border); }
+.term-bar i:nth-child(1){ background:#ff5f57; } .term-bar i:nth-child(2){ background:#febc2e; } .term-bar i:nth-child(3){ background:#28c840; }
+.term-bar span { margin-left:8px; font-family:var(--font-m); font-size:10.5px; color:var(--dim); letter-spacing:0.08em; }
+.term-body { padding:18px 16px; font-family:var(--font-m); font-size:12px; line-height:1.75; min-height:262px; white-space:pre-wrap; word-break:break-word; }
+.t-dim{color:var(--dim);} .t-mag{color:var(--mag);} .t-ice{color:var(--ice);} .t-green{color:var(--green);} .t-amber{color:var(--amber);}
+.cursor { display:inline-block; width:7px; height:14px; background:var(--mag); vertical-align:-2px; animation:blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity:0; } }
+
+/* ── SECTIONS ─────────────────────────────────────────────── */
+section { position:relative; max-width:1200px; margin:0 auto; padding:clamp(60px,9vh,110px) clamp(16px,4vw,40px); }
+#how { padding-top:clamp(56px,6vw,80px); }
+.sec-eyebrow { font-family:var(--font-m); font-size:11px; letter-spacing:0.22em; color:var(--mag); text-transform:uppercase; margin-bottom:14px; }
+h2 { font-weight:900; font-size:clamp(28px,4vw,44px); letter-spacing:-0.015em; line-height:1.1; margin-bottom:14px; }
+.sec-sub { color:var(--muted); max-width:60ch; margin-bottom:44px; }
+
+/* how it works */
+.steps { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; counter-reset:step; }
+.step { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:24px 20px; transition:border-color .3s var(--ease), transform .3s var(--ease); }
+.step:hover { border-color:var(--mag-mid); transform:translateY(-3px); }
+.step-num { font-family:var(--font-m); font-size:11px; color:var(--mag); letter-spacing:0.14em; margin-bottom:12px; }
+.step h3 { font-size:17px; font-weight:700; margin-bottom:8px; }
+.step p { font-size:13.5px; color:var(--muted); }
+@media(max-width:900px){ .steps { grid-template-columns:repeat(2,1fr);} }
+@media(max-width:540px){ .steps { grid-template-columns:1fr;} }
+
+/* bento features */
+.bento { display:grid; grid-template-columns:repeat(6,1fr); gap:14px; }
+.card { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:26px 22px; grid-column:span 2; transition:border-color .3s var(--ease), transform .3s var(--ease); position:relative; overflow:hidden; }
+.card:hover { border-color:var(--mag-mid); transform:translateY(-3px); }
+.card.wide { grid-column:span 3; }
+.card-icon { font-size:20px; color:var(--mag); margin-bottom:14px; font-family:var(--font-m); }
+.card h3 { font-size:17px; font-weight:700; margin-bottom:8px; }
+.card p { font-size:13.5px; color:var(--muted); }
+.card .tag { position:absolute; top:18px; right:18px; font-family:var(--font-m); font-size:9.5px; letter-spacing:0.12em; color:var(--ice); border:1px solid rgba(0,196,255,0.3); border-radius:99px; padding:3px 8px; }
+@media(max-width:900px){ .card, .card.wide { grid-column:span 3; } }
+@media(max-width:620px){ .card, .card.wide { grid-column:span 6; } }
+
+/* privacy strip */
+.strip { background:linear-gradient(120deg, rgba(224,0,106,0.09), rgba(0,196,255,0.05)); border:1px solid var(--border); border-radius:12px; padding:clamp(26px,4vw,44px); display:grid; grid-template-columns:1.2fr 1fr; gap:28px; align-items:center; }
+.strip h2 { font-size:clamp(22px,3vw,32px); }
+.strip ul { list-style:none; display:grid; gap:12px; }
+.strip li { font-size:14px; color:var(--muted); padding-left:26px; position:relative; }
+.strip li::before { content:'✓'; position:absolute; left:0; color:var(--green); font-family:var(--font-m); }
+@media(max-width:760px){ .strip { grid-template-columns:1fr; } }
+
+/* pricing */
+.plans { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:stretch; }
+.plan { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:26px 22px; display:flex; flex-direction:column; position:relative; transition:border-color .3s var(--ease), transform .3s var(--ease); }
+.plan:hover { border-color:var(--mag-mid); transform:translateY(-3px); }
+.plan.featured { border-color:var(--mag); background:var(--mag-dim); }
+.plan-badge { position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--mag); color:#fff; font-family:var(--font-m); font-size:9.5px; letter-spacing:0.14em; padding:4px 10px; border-radius:99px; white-space:nowrap; }
+.plan-name { font-family:var(--font-m); font-size:11px; letter-spacing:0.16em; color:var(--dim); text-transform:uppercase; margin-bottom:12px; }
+.plan-price { font-size:36px; font-weight:900; }
+.plan-price sub { font-size:13px; font-weight:400; color:var(--dim); vertical-align:baseline; }
+.plan-note { font-family:var(--font-m); font-size:10.5px; color:var(--dim); margin:4px 0 18px; }
+.plan ul { list-style:none; display:grid; gap:9px; margin-bottom:22px; }
+.plan li { font-size:13px; color:var(--muted); padding-left:20px; position:relative; }
+.plan li::before { content:'✓'; position:absolute; left:0; color:var(--mag); font-family:var(--font-m); font-size:11px; }
+.plan .btn { margin-top:auto; width:100%; }
+.byok-note { text-align:center; font-family:var(--font-m); font-size:11px; color:var(--dim); margin-top:22px; }
+@media(max-width:980px){ .plans { grid-template-columns:repeat(2,1fr);} }
+@media(max-width:560px){ .plans { grid-template-columns:1fr;} }
+
+/* faq */
+.faq { max-width:760px; }
+.faq details { border:1px solid var(--border); border-radius:var(--r); background:var(--panel); margin-bottom:10px; overflow:hidden; }
+.faq summary { list-style:none; cursor:pointer; padding:18px 20px; font-weight:600; font-size:15px; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.faq summary::-webkit-details-marker { display:none; }
+.faq summary::after { content:'+'; font-family:var(--font-m); color:var(--mag); font-size:18px; transition:transform .3s var(--ease); flex-shrink:0; }
+.faq details[open] summary::after { transform:rotate(45deg); }
+.faq .a { padding:0 20px 18px; color:var(--muted); font-size:14px; }
+
+/* CTA band */
+.cta-band { text-align:center; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:clamp(40px,7vw,70px) 24px; position:relative; overflow:hidden; }
+.cta-band::before { content:''; position:absolute; inset:-40%; background:radial-gradient(ellipse at 50% 120%, rgba(224,0,106,0.16), transparent 60%); pointer-events:none; }
+.cta-band > * { position:relative; }
+
+/* footer */
+footer.site { border-top:1px solid var(--border); padding:34px clamp(16px,4vw,40px); display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; max-width:1200px; margin:0 auto; }
+footer.site .cols { display:flex; gap:22px; flex-wrap:wrap; }
+footer.site a { font-family:var(--font-m); font-size:10.5px; letter-spacing:0.1em; color:var(--dim); text-decoration:none; text-transform:uppercase; }
+footer.site a:hover { color:var(--mag); }
+footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim); letter-spacing:0.08em; }
+
+/* cookie banner */
+#cookieBanner { position:fixed; left:16px; bottom:16px; z-index:2500; max-width:380px; background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:16px; box-shadow:0 16px 48px rgba(0,0,0,0.55); }
+#cookieBanner.hidden { display:none; }
+#cookieBanner p { font-size:12.5px; line-height:1.6; color:var(--muted); margin:0 0 10px; }
+#cookieBanner a { color:var(--ice); text-decoration:none; }
+#cookieBanner .btn { padding:9px 16px; font-size:13px; }
+@media(max-width:600px){ #cookieBanner { left:12px; right:12px; max-width:none; } }
+
+/* ── RESPONSIVE RHYTHM ────────────────────────────────────── */
 @media(max-width:600px){
-  .steps { grid-template-columns:repeat(2,1fr); }
-  .step-label { display:none; }
-  .step-name { font-size:12px; }
+  .nav { padding:12px clamp(16px,5vw,24px); }
+  .hero { padding:clamp(100px,14vh,118px) clamp(16px,5vw,24px) 48px; gap:40px; }
+  .eyebrow { margin-bottom:14px; }
+  h1 { margin-bottom:18px; }
+  .hero-sub { line-height:1.55; margin-bottom:24px; }
+  .hero-ctas { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; margin-bottom:0; }
+  .hero-ctas .btn { width:100%; }
+  .hero-note { margin:14px 0 30px; line-height:1.55; }
+  .stats { width:100%; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px 20px; }
+  .stat span { display:block; max-width:16ch; line-height:1.5; }
+  .term-body { min-height:250px; padding:16px 14px; font-size:11px; line-height:1.7; }
+  section { padding:64px clamp(16px,5vw,24px); }
+  #how { padding-top:56px; }
+  .sec-sub { margin-bottom:32px; }
+  .step, .card, .plan { padding:22px 20px; }
+  .strip { padding:26px 20px; gap:24px; }
+  .cta-band { padding:44px 20px; }
+  footer.site { align-items:flex-start; padding:30px clamp(16px,5vw,24px); }
+  footer.site .cols { width:100%; gap:14px 20px; }
 }
 
-/* ══ PANELS ══════════════════════════════════════════════════ */
-.panel {
-  background:var(--surface); border:1px solid var(--border);
-  border-radius:var(--r); overflow:hidden; margin-bottom:16px;
-}
-.panel-head {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:14px 20px; border-bottom:1px solid var(--border);
-  background:var(--panel);
-}
-.panel-title {
-  display:flex; align-items:center; gap:10px;
-  font-size:11px; font-family:var(--font-m); letter-spacing:0.14em; text-transform:uppercase;
-}
-.panel-icon { color:var(--mag); font-size:13px; }
-.panel-body { padding:20px; }
+/* reveal on scroll */
+.reveal { opacity:0; transform:translateY(22px); transition:opacity .7s var(--ease), transform .7s var(--ease); }
+.reveal.in { opacity:1; transform:none; }
 
-/* ══ API KEY MODAL ══════════════════════════════════════════ */
-.modal-overlay {
-  position:fixed; inset:0; z-index:1000;
-  background:rgba(0,0,0,0.88); backdrop-filter:blur(8px);
-  display:flex; align-items:center; justify-content:center; padding:20px;
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior:auto; }
+  *, *::before, *::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+  .reveal { opacity:1; transform:none; }
 }
-.modal {
-  background:var(--panel); border:1px solid var(--border2);
-  border-radius:12px; width:100%; max-width:440px; padding:32px;
-  animation: modal-in 0.4s var(--ease);
-}
-@keyframes modal-in { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-.modal-title { font-size:18px; font-weight:700; margin-bottom:6px; }
-.modal-sub { font-size:13px; color:var(--muted); margin-bottom:24px; line-height:1.5; }
-.modal-label { font-size:11px; font-family:var(--font-m); color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; display:block; }
-.modal-input {
-  width:100%; padding:12px 16px; background:var(--panel2); border:1px solid var(--border2);
-  border-radius:var(--r); color:var(--bone); font-family:var(--font-m); font-size:13px;
-  transition:border-color 0.2s;
-}
-.modal-input:focus { outline:none; border-color:var(--mag); }
-.modal-note { font-size:11px; color:var(--dim); margin-top:10px; line-height:1.5; }
-.modal-actions { display:flex; gap:10px; margin-top:24px; }
-
-/* ══ TYPOGRAPHY ══════════════════════════════════════════════ */
-.section-eyebrow { font-size:10px; font-family:var(--font-m); color:var(--mag); letter-spacing:0.18em; text-transform:uppercase; margin-bottom:8px; }
-.section-title { font-size:28px; font-weight:900; letter-spacing:-0.02em; margin-bottom:6px; }
-.section-sub { font-size:14px; color:var(--muted); line-height:1.6; margin-bottom:24px; }
-
-/* ══ TEXTAREA ════════════════════════════════════════════════ */
-.textarea-wrap { position:relative; }
-.big-textarea {
-  width:100%; min-height:200px; padding:16px; background:var(--panel2);
-  border:1px solid var(--border); border-radius:var(--r); color:var(--bone);
-  font-size:14px; line-height:1.7; resize:vertical; transition:border-color 0.2s;
-}
-.big-textarea:focus { outline:none; border-color:var(--mag); }
-.big-textarea::placeholder { color:var(--dim); }
-.char-count {
-  position:absolute; bottom:10px; right:14px;
-  font-size:11px; font-family:var(--font-m); color:var(--dim);
-}
-.char-count.good { color:var(--ice); }
-
-/* ══ BUTTONS ══════════════════════════════════════════════════ */
-.btn {
-  display:inline-flex; align-items:center; gap:8px; padding:11px 24px;
-  border-radius:var(--r); font-size:13px; font-weight:600; cursor:pointer;
-  transition: all 0.25s var(--ease); white-space:nowrap; position:relative; overflow:hidden;
-  border:1px solid transparent;
-}
-.btn-primary {
-  background:var(--mag); color:#fff; border-color:var(--mag);
-}
-.btn-primary:hover { background:#c2005d; transform:translateY(-1px); box-shadow:0 6px 20px var(--mag-mid); }
-.btn-primary:active { transform:translateY(0); }
-.btn-primary:disabled { background:rgba(224,0,106,0.35); cursor:not-allowed; transform:none; box-shadow:none; }
-.btn-ghost {
-  background:transparent; color:var(--muted); border-color:var(--border2);
-}
-.btn-ghost:hover { border-color:var(--border2); color:var(--bone); background:var(--panel2); }
-.btn-ghost:disabled { opacity:0.4; cursor:not-allowed; }
-.btn-sm { padding:7px 16px; font-size:12px; }
-.btn-xs { padding:5px 12px; font-size:11px; font-family:var(--font-m); }
-
-/* ══ ANALYSIS OUTPUT ═════════════════════════════════════════ */
-.analysis-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
-@media(max-width:600px){ .analysis-grid { grid-template-columns:1fr; } }
-.analysis-card {
-  background:var(--panel2); border:1px solid var(--border);
-  border-radius:var(--r); padding:14px 16px;
-}
-.analysis-card-label {
-  font-size:9px; font-family:var(--font-m); color:var(--mag);
-  letter-spacing:0.16em; text-transform:uppercase; margin-bottom:8px;
-}
-.analysis-card-value { font-size:13px; color:var(--bone); line-height:1.6; }
-.trait-list { list-style:none; }
-.trait-list li { font-size:12px; color:var(--muted); padding:3px 0; display:flex; align-items:flex-start; gap:6px; }
-.trait-list li::before { content:'→'; color:var(--mag); flex-shrink:0; font-family:var(--font-m); font-size:10px; margin-top:2px; }
-
-/* ══ SCORE BAR ════════════════════════════════════════════════ */
-.score-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-.score-label { font-size:12px; color:var(--muted); width:110px; flex-shrink:0; }
-.score-bar-wrap { flex:1; height:4px; background:var(--border2); border-radius:2px; overflow:hidden; }
-.score-bar-fill { height:100%; border-radius:2px; background:var(--mag); transition:width 1s var(--ease); }
-.score-val { font-size:11px; font-family:var(--font-m); color:var(--muted); width:30px; text-align:right; flex-shrink:0; }
-
-/* ══ FILTERS ══════════════════════════════════════════════════ */
-.filter-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
-.filter-card {
-  background:var(--panel2); border:1px solid var(--border);
-  border-radius:var(--r); padding:14px; cursor:pointer;
-  transition:all 0.25s; display:flex; align-items:flex-start; gap:10px;
-}
-.filter-card:hover { border-color:var(--border2); }
-.filter-card.active { border-color:var(--mag); background:var(--mag-dim); }
-.filter-toggle {
-  width:18px; height:18px; border-radius:4px; border:1px solid var(--border2);
-  display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;
-  transition:all 0.2s; font-size:10px;
-}
-.filter-card.active .filter-toggle { background:var(--mag); border-color:var(--mag); }
-.filter-name { font-size:12px; font-weight:700; color:var(--bone); margin-bottom:3px; }
-.filter-desc { font-size:11px; color:var(--muted); line-height:1.4; }
-
-/* ══ FORM FIELDS ══════════════════════════════════════════════ */
-.field-group { margin-bottom:18px; }
-.field-label { font-size:11px; font-family:var(--font-m); color:var(--dim); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:8px; display:block; }
-.field-input, .field-select, .field-textarea {
-  width:100%; padding:11px 14px; background:var(--panel2); border:1px solid var(--border);
-  border-radius:var(--r); color:var(--bone); font-size:13px; transition:border-color 0.2s;
-}
-.field-input:focus, .field-select:focus, .field-textarea:focus { outline:none; border-color:var(--mag); }
-.field-textarea { resize:vertical; min-height:80px; line-height:1.5; }
-.field-select { appearance:none; cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(244,241,236,0.42)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; padding-right:36px; }
-.field-select option { background:var(--panel2); }
-.fields-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
-@media(max-width:600px){ .fields-row { grid-template-columns:1fr; } }
-
-/* ══ OUTPUT TABS ══════════════════════════════════════════════ */
-.tabs { display:flex; gap:1px; background:var(--border); border-radius:var(--r) var(--r) 0 0; overflow:hidden; }
-.tab-btn {
-  flex:1; padding:12px; font-size:12px; font-family:var(--font-m); letter-spacing:0.08em;
-  text-transform:uppercase; background:var(--panel); color:var(--muted);
-  cursor:pointer; transition:all 0.2s; border:none;
-}
-.tab-btn.active { background:var(--panel2); color:var(--bone); }
-.tab-btn:hover:not(.active) { background:var(--panel2); color:var(--muted); }
-.tab-content { display:none; }
-.tab-content.active { display:block; }
-
-/* ══ CODE OUTPUT ══════════════════════════════════════════════ */
-.code-block {
-  background:var(--panel2); border:1px solid var(--border); border-radius:0 0 var(--r) var(--r);
-  font-family:var(--font-m); font-size:12px; line-height:1.7;
-  color:#c9d1d9; overflow:auto; max-height:480px; position:relative;
-}
-.code-inner { padding:20px; min-height:200px; }
-.code-actions {
-  position:sticky; top:0; right:0; float:right;
-  display:flex; gap:6px; padding:8px; background:var(--panel2); z-index:1;
-}
-.human-block {
-  background:var(--panel2); border:1px solid var(--border); border-radius:0 0 var(--r) var(--r);
-  padding:24px; font-size:13px; line-height:1.8; color:var(--bone); max-height:480px; overflow:auto;
-}
-.human-block h3 { font-size:14px; font-weight:700; color:var(--mag); margin:20px 0 8px; font-family:var(--font-m); text-transform:uppercase; letter-spacing:0.1em; }
-.human-block h3:first-child { margin-top:0; }
-.human-block p { color:var(--muted); margin-bottom:10px; }
-.human-block ul { list-style:none; padding:0; }
-.human-block ul li { padding:4px 0 4px 18px; position:relative; color:var(--muted); }
-.human-block ul li::before { content:'→'; position:absolute; left:0; color:var(--mag); font-size:10px; top:6px; }
-.human-block .hl { color:var(--bone); font-weight:600; }
-
-/* ══ QUALITY CHECK ════════════════════════════════════════════ */
-.quality-score-big {
-  font-size:56px; font-weight:900; font-family:var(--font-m); letter-spacing:-0.04em;
-  color:var(--bone); line-height:1;
-}
-.quality-score-big.pass { color:var(--ice); }
-.quality-score-big.warn { color:var(--amber); }
-.quality-score-big.fail { color:var(--red); }
-.quality-label { font-size:11px; font-family:var(--font-m); color:var(--dim); letter-spacing:0.14em; text-transform:uppercase; margin-top:4px; }
-.quality-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
-.quality-row:last-child { border-bottom:none; }
-.quality-check-name { font-size:13px; color:var(--muted); }
-.quality-badge {
-  padding:3px 10px; border-radius:12px; font-size:11px; font-family:var(--font-m);
-}
-.quality-badge.pass { background:rgba(0,196,255,0.08); color:var(--ice); border:1px solid rgba(0,196,255,0.2); }
-.quality-badge.warn { background:rgba(245,166,35,0.1); color:var(--amber); border:1px solid rgba(245,166,35,0.2); }
-.quality-badge.fail { background:rgba(255,59,59,0.1); color:var(--red); border:1px solid rgba(255,59,59,0.2); }
-
-/* ══ SAVE/LOAD BAR ════════════════════════════════════════════ */
-.bottom-bar {
-  position:fixed; bottom:0; left:0; right:0; z-index:100;
-  background:rgba(9,9,9,0.92); backdrop-filter:blur(12px);
-  border-top:1px solid var(--border); padding:12px 24px;
-  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-}
-.bottom-bar-left { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.bottom-bar-right { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-.saved-indicator {
-  font-size:11px; font-family:var(--font-m); color:var(--ice); opacity:0;
-  transition:opacity 0.5s;
-}
-.saved-indicator.show { opacity:1; }
-
-/* ══ LOADING STATE ════════════════════════════════════════════ */
-.loading-wrap {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:48px 20px; gap:16px;
-}
-.loader-bar {
-  width:240px; height:2px; background:var(--border); border-radius:1px; overflow:hidden;
-}
-.loader-bar-fill {
-  height:100%; background:var(--mag); border-radius:1px;
-  animation: loader-anim 1.8s ease-in-out infinite;
-}
-@keyframes loader-anim { 0%{width:0;margin-left:0} 50%{width:60%;margin-left:20%} 100%{width:0;margin-left:100%} }
-.loading-text { font-size:12px; font-family:var(--font-m); color:var(--muted); letter-spacing:0.1em; }
-
-/* ══ DIVIDER LINE ═════════════════════════════════════════════ */
-.div-line { height:1px; background:linear-gradient(90deg,var(--mag) 0%,transparent 60%); margin:24px 0; }
-
-/* ══ TOAST ════════════════════════════════════════════════════ */
-#toast {
-  position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
-  background:var(--panel2); border:1px solid var(--border2); border-radius:var(--r);
-  padding:10px 20px; font-size:13px; color:var(--bone); z-index:2000;
-  opacity:0; transition:all 0.3s var(--ease); white-space:nowrap; pointer-events:none;
-}
-#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-#toast.err { border-color:rgba(255,59,59,0.4); color:var(--red); }
-#toast.ok { border-color:rgba(0,196,255,0.4); color:var(--ice); }
-#toast.warn { border-color:rgba(245,166,35,0.4); color:var(--amber); }
-
-/* ══ EMPTY STATE ══════════════════════════════════════════════ */
-.empty-state {
-  text-align:center; padding:48px 20px; color:var(--dim);
-  font-size:13px; font-family:var(--font-m);
-}
-.empty-state-icon { font-size:32px; margin-bottom:12px; opacity:0.4; }
-
-/* ══ SCROLLABLE PROFILE LIST ══════════════════════════════════ */
-.profile-list { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
-.profile-item {
-  display:flex; align-items:center; justify-content:space-between;
-  background:var(--panel2); border:1px solid var(--border); border-radius:var(--r);
-  padding:12px 16px; cursor:pointer; transition:border-color 0.2s;
-}
-.profile-item:hover { border-color:var(--mag-mid); }
-.profile-item-name { font-size:13px; font-weight:600; }
-.profile-item-meta { font-size:11px; font-family:var(--font-m); color:var(--dim); margin-top:2px; }
-.profile-item-actions { display:flex; gap:6px; }
-
-/* ══ PROVIDER SWITCHER ════════════════════════════════════════ */
-.provider-tabs { display:flex; gap:1px; background:var(--border); border-radius:6px; overflow:hidden; margin-bottom:20px; }
-.provider-tab { flex:1; padding:8px 12px; font-size:11px; font-family:var(--font-m); letter-spacing:0.08em; text-transform:uppercase; background:var(--panel2); color:var(--muted); cursor:pointer; transition:all 0.2s; text-align:center; border:none; }
-.provider-tab.active { background:var(--panel); color:var(--bone); }
-.provider-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:20px; font-size:10px; font-family:var(--font-m); letter-spacing:0.12em; text-transform:uppercase; border:1px solid var(--border2); color:var(--dim); transition:all 0.3s; }
-.provider-badge.anthropic { border-color:var(--mag-mid); color:var(--mag); }
-.provider-badge.deepseek { border-color:rgba(91,164,245,0.35); color:#5BA4F5; }
-.provider-badge.openai { border-color:rgba(184,188,200,0.35); color:#B8BCC8; }
-
-/* ══ LOGO IMAGE ═══════════════════════════════════════════════ */
-.logo-link { display:flex; align-items:center; text-decoration:none; flex-shrink:0; }
-.logo-img { height:32px; width:auto; display:block; object-fit:contain; }
-
-/* ══ APP FOOTER ═══════════════════════════════════════════════ */
-.app-footer {
-  text-align:center; padding:24px 20px 32px;
-  font-size:10px; font-family:var(--font-m); letter-spacing:0.14em; text-transform:uppercase;
-  color:var(--dim); border-top:1px solid var(--border);
-  display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap;
-}
-.app-footer a { color:var(--dim); transition:color 0.2s; text-decoration:none; }
-.app-footer a:hover { color:var(--muted); }
-.app-footer .sep { opacity:0.3; }
-
-.hidden { display:none !important; }
-.fade-in { animation:fade-in 0.5s var(--ease) both; }
-@keyframes fade-in { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
-.mt8 { margin-top:8px; }
-.mt16 { margin-top:16px; }
-.mt24 { margin-top:24px; }
-.flex-row { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.text-muted { color:var(--muted); }
-.text-mag { color:var(--mag); }
-.text-mono { font-family:var(--font-m); }
 </style>
+<link href="assets/glass.css" rel="stylesheet">
 </head>
 <body>
 
-<!-- ══ API KEY MODAL ══════════════════════════════════════════ -->
-<div class="modal-overlay hidden" id="keyModal">
-  <div class="modal">
-    <div class="section-eyebrow">Setup Required</div>
-    <div class="modal-title" style="margin-bottom:16px;">AI Provider</div>
-    <div class="provider-tabs">
-      <button class="provider-tab active" id="provTabAnthropic" onclick="switchProviderTab('anthropic')">◈ Anthropic</button>
-      <button class="provider-tab" id="provTabDeepseek" onclick="switchProviderTab('deepseek')">◈ DeepSeek</button>
-      <button class="provider-tab" id="provTabOpenai" onclick="switchProviderTab('openai')">◈ OpenAI</button>
+<nav class="nav">
+  <a class="logo" href="index.html" aria-label="BNDR VoiceEngine home">
+    <img class="brand-logo" src="assets/bndr-logo.png" width="797" height="230" alt="BNDR LLC">
+  </a>
+  <div class="nav-links" id="navLinks">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+    <a class="btn btn-primary" href="app.html">Launch App</a>
+  </div>
+  <button class="nav-burger" id="navBurger" type="button" aria-label="Open menu" aria-expanded="false">☰</button>
+</nav>
+
+<header class="hero">
+  <div>
+    <div class="eyebrow">Voice Intelligence Engine</div>
+    <h1>Your voice.<br><em>Every AI.</em></h1>
+    <p class="hero-sub">Paste 150–600 words of your real writing. VoiceEngine performs a forensic 16-dimension analysis and builds a deployable voice profile — a machine JSON file any AI tool obeys, plus instructions written for humans. AI that finally sounds like you, not like AI.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary btn-lg" href="app.html">Start free — no card needed</a>
+      <a class="btn btn-lg" href="#how">See how it works</a>
     </div>
-    <!-- Anthropic panel -->
-    <div id="provPanelAnthropic">
-      <div class="modal-sub">The Voice Engine calls Claude directly from your browser. Your key is stored in session memory only — it clears when you close this tab.</div>
-      <label class="modal-label" for="apiKeyInput">Anthropic API Key</label>
-      <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="off">
-      <div class="modal-note">Get your key at console.anthropic.com → API Keys. Usage is billed to your Anthropic account.</div>
-    </div>
-    <!-- DeepSeek panel -->
-    <div id="provPanelDeepseek" class="hidden">
-      <div class="modal-sub">Connects to DeepSeek-V3.2 (deepseek-chat) via their OpenAI-compatible API. Stored in session memory only — clears when you close this tab.</div>
-      <label class="modal-label" for="deepseekKeyInput">DeepSeek API Key</label>
-      <input type="password" class="modal-input" id="deepseekKeyInput" placeholder="sk-…" autocomplete="off">
-      <div class="modal-note">Get your key at platform.deepseek.com → API Keys. Note: some browsers block cross-origin requests to DeepSeek — if calls fail, switch to Anthropic or use a server-side proxy.</div>
-    </div>
-    <!-- OpenAI panel -->
-    <div id="provPanelOpenai" class="hidden">
-      <div class="modal-sub">Connects to GPT-4o via OpenAI's Chat Completions API. Stored in session memory only — clears when you close this tab.</div>
-      <label class="modal-label" for="openaiKeyInput">OpenAI API Key</label>
-      <input type="password" class="modal-input" id="openaiKeyInput" placeholder="sk-…" autocomplete="off">
-      <div class="modal-note">Get your key at platform.openai.com → API Keys. Usage is billed to your OpenAI account.</div>
-    </div>
-    <div class="modal-actions" style="margin-top:20px;">
-      <button class="btn btn-primary" onclick="saveApiKey()">Save &amp; Continue</button>
-      <button class="btn btn-ghost" onclick="closeKeyModal()">Cancel</button>
+    <p class="hero-note">7-day free trial · 5 analyses/day · bring your own AI key</p>
+    <div class="stats">
+      <div class="stat"><b>16</b><span>voice dimensions</span></div>
+      <div class="stat"><b>12</b><span>enforceable filters</span></div>
+      <div class="stat"><b>3</b><span>AI providers</span></div>
+      <div class="stat"><b>2</b><span>synced outputs</span></div>
     </div>
   </div>
-</div>
+  <div class="term">
+    <div class="term-bar"><i></i><i></i><i></i><span>voice_profile.json</span></div>
+    <div class="term-body" id="termBody"></div>
+  </div>
+</header>
 
-<!-- ══ TOAST ══════════════════════════════════════════════════ -->
-<div id="toast"></div>
+<section id="how">
+  <div class="sec-eyebrow reveal">How it works</div>
+  <h2 class="reveal">From writing sample to voice blueprint in four steps</h2>
+  <p class="sec-sub reveal">No training runs and no sample storage. Anthropic and OpenAI calls go directly from your browser; DeepSeek uses an encrypted, transient relay for browser compatibility.</p>
+  <div class="steps">
+    <div class="step reveal"><div class="step-num">STEP 01</div><h3>Paste your writing</h3><p>An email, a post, a chapter — anything you actually wrote. 150–600 words is the sweet spot.</p></div>
+    <div class="step reveal"><div class="step-num">STEP 02</div><h3>Get decoded</h3><p>The engine dissects tone, rhythm, structure, vocabulary, and risk posture across 16 dimensions — with scores you can inspect and correct.</p></div>
+    <div class="step reveal"><div class="step-num">STEP 03</div><h3>Set the rules</h3><p>Pick intent, audience, and content type. Flip on hard filters like NO HYPE, NO HEDGING, NO AI TELLS — enforced, not suggested.</p></div>
+    <div class="step reveal"><div class="step-num">STEP 04</div><h3>Deploy anywhere</h3><p>Copy the machine file into ChatGPT, Claude, or any AI tool as a system prompt. Keep the human doc for your team.</p></div>
+  </div>
+</section>
 
-<!-- ══ APP ════════════════════════════════════════════════════ -->
-<div class="app">
+<section id="features">
+  <div class="sec-eyebrow reveal">Features</div>
+  <h2 class="reveal">Built like an instrument,<br>not a toy</h2>
+  <p class="sec-sub reveal">Every output is validated, retried on failure, and quality-scored before you ship it.</p>
+  <div class="bento">
+    <div class="card wide reveal"><div class="card-icon">◈</div><h3>Forensic 16-dimension analysis</h3><p>Energy, formality, directness, specificity, confidence — plus signature moves, phrasing habits, and what you never say. Rendered as animated score bars you can audit and override before anything is generated.</p></div>
+    <div class="card wide reveal"><span class="tag">ENFORCED</span><div class="card-icon">⛔</div><h3>12 hard style filters</h3><p>NO HYPE, NO HEDGING, NO PADDING, NO AI TELLS and 8 more — written into the profile as rules, not vibes.</p></div>
+    <div class="card reveal"><div class="card-icon">⇄</div><h3>Machine + human outputs</h3><p>A strict JSON system prompt for AI tools, and a readable instruction doc for people. Always in sync, both exportable.</p></div>
+    <div class="card reveal"><div class="card-icon">◎</div><h3>AI quality check</h3><p>A second AI pass scores the profile on 5 dimensions and warns you below 70 — before you rely on it.</p></div>
+    <div class="card reveal"><div class="card-icon">☁</div><h3>Profiles that follow you</h3><p>Save voice profiles to your account and reload them on any device. Lifetime license holders can save on-device with no account at all.</p></div>
+    <div class="card wide reveal"><span class="tag">BYOK</span><div class="card-icon">⚿</div><h3>Your key. Your data. Your browser.</h3><p>Works with Anthropic, OpenAI, and DeepSeek using your own API key. Keys live only in the current tab session and BNDR never stores your keys or sample. DeepSeek requests pass through a transient relay and are discarded after forwarding.</p></div>
+        <div class="card wide reveal"><div class="card-icon">✆</div><h3>Mobile-first</h3><p>Every step, modal, and export works on a phone. Guided tour included — clear enough for an 8-year-old or an 80-year-old.</p></div>
+  </div>
+</section>
 
-  <!-- Header -->
-  <header class="header">
-    <a class="logo-link" href="#" title="Home">
-      <img src="YOUR_LOGO_URL_HERE" alt="Brand Logo" class="logo-img">
-    </a>
-    <div class="header-right">
-      <div class="status-pill" id="statusPill">
-        <div class="status-dot"></div>
-        <span id="statusText">IDLE</span>
-      </div>
-      <button class="btn-key" onclick="openKeyModal()" title="Configure API Key">⌘ KEY</button>
+<section>
+  <div class="strip reveal">
+    <div>
+      <div class="sec-eyebrow">Privacy by design</div>
+      <h2>We don't store your writing.<br>That's the architecture.</h2>
     </div>
-  </header>
+    <ul>
+      <li>API keys stored in session memory only — gone when the tab closes</li>
+      <li>Anthropic/OpenAI requests go direct; DeepSeek is relayed transiently over HTTPS</li>
+      <li>Only finished profiles you choose to save are stored</li>
+      <li>No ads, no trackers, no analytics scripts, no data resale</li>
+    </ul>
+  </div>
+</section>
 
-  <!-- Step Progress -->
-  <div class="steps" id="stepsBar">
-    <div class="step-item active" data-step="1" onclick="navStep(1)">
-      <div class="step-num">1</div>
-      <div class="step-info">
-        <div class="step-label">Input</div>
-        <div class="step-name">Sample</div>
-      </div>
+<section id="pricing">
+  <div class="sec-eyebrow reveal">Pricing</div>
+  <h2 class="reveal">Costs less than the words it saves you</h2>
+  <p class="sec-sub reveal">Comparable brand-voice tools run $29–$69 a month. VoiceEngine is $19 — because you bring your own AI key and we don't resell compute.</p>
+  <div class="plans">
+    <div class="plan reveal">
+      <div class="plan-name">Trial</div>
+      <div class="plan-price">$0</div>
+      <div class="plan-note">7 days · no card required</div>
+      <ul><li>5 analyses per day</li><li>All 16 dimensions + 12 filters</li><li>Machine + human outputs</li><li>All 3 AI providers</li></ul>
+      <a class="btn" href="app.html">Try it free</a>
     </div>
-    <div class="step-item" data-step="2" onclick="navStep(2)">
-      <div class="step-num">2</div>
-      <div class="step-info">
-        <div class="step-label">AI Read</div>
-        <div class="step-name">Analysis</div>
-      </div>
+    <div class="plan reveal">
+      <div class="plan-name">Monthly</div>
+      <div class="plan-price" id="priceMonthly">$19<sub>/mo</sub></div>
+      <div class="plan-note" id="noteMonthly">Billed monthly</div>
+      <ul><li>50 analyses per day</li><li>Unlimited saved profiles</li><li>AI quality check audits</li><li>Cancel anytime</li></ul>
+      <a class="btn" href="app.html">Get Monthly</a>
     </div>
-    <div class="step-item" data-step="3" onclick="navStep(3)">
-      <div class="step-num">3</div>
-      <div class="step-info">
-        <div class="step-label">Tuning</div>
-        <div class="step-name">Configure</div>
-      </div>
+    <div class="plan featured reveal">
+      <div class="plan-badge">BEST VALUE — SAVE 35%</div>
+      <div class="plan-name">Annual</div>
+      <div class="plan-price" id="priceAnnual">$149<sub>/yr</sub></div>
+      <div class="plan-note" id="noteAnnual">$12.42/mo — save 35%</div>
+      <ul><li>Everything in Monthly</li><li>2 months free</li><li>Price locked for renewal</li><li>Cancel anytime</li></ul>
+      <a class="btn btn-primary" href="app.html">Get Annual</a>
     </div>
-    <div class="step-item" data-step="4" onclick="navStep(4)">
-      <div class="step-num">4</div>
-      <div class="step-info">
-        <div class="step-label">Output</div>
-        <div class="step-name">Generate</div>
-      </div>
+    <div class="plan reveal">
+      <div class="plan-name">Lifetime</div>
+      <div class="plan-price" id="priceLifetime">$99<sub> once</sub></div>
+      <div class="plan-note" id="noteLifetime">One payment. Yours forever.</div>
+      <ul><li>Unlimited analyses</li><li>License-key unlock via Gumroad</li><li>Works without an account</li><li>All future updates</li></ul>
+      <button class="btn" id="lifetimeBtn" type="button">Get Lifetime</button>
     </div>
   </div>
+  <p class="byok-note">All plans are BYOK — you connect your own Anthropic, OpenAI, or DeepSeek API key. Subscriptions are handled in-app after you sign in, so your plan links to your account automatically.</p>
+</section>
 
-  <!-- ══ STEP 1: SAMPLE ═════════════════════════════════════ -->
-  <div id="view-1" class="fade-in">
-    <div class="section-eyebrow">Step 01 — Voice Capture</div>
-    <div class="section-title">Paste Your Writing</div>
-    <div class="section-sub">Drop in 150–600 words of your own writing — an email, post, article, script, whatever sounds like you. The engine reads sentence rhythm, word selection, tone registers, and risk behavior.</div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <div class="panel-title"><span class="panel-icon">◈</span> Writing Sample</div>
-        <div class="flex-row">
-          <button class="btn btn-xs btn-ghost" onclick="clearSample()">Clear</button>
-          <button class="btn btn-xs btn-ghost" onclick="loadExample()">Load Example</button>
-        </div>
-      </div>
-      <div class="panel-body">
-        <div class="textarea-wrap">
-          <textarea class="big-textarea" id="sampleText" placeholder="Paste your writing here. The more natural and representative, the more accurate the voice capture. Don't polish it — raw is better.&#10;&#10;Aim for 150–600 words. You can paste a mix: a few paragraphs from different pieces works well." oninput="updateCharCount(this)" style="min-height:260px;"></textarea>
-          <div class="char-count" id="charCount">0 words</div>
-        </div>
-
-        <div class="div-line"></div>
-
-        <div class="section-eyebrow" style="margin-bottom:10px;">Optional Context</div>
-        <div class="fields-row">
-          <div class="field-group" style="margin-bottom:0">
-            <label class="field-label">What is this writing usually for?</label>
-            <select class="field-select" id="writingContext" onchange="syncContextToContentType()">
-              <option value="">Select context...</option>
-              <optgroup label="Content &amp; Marketing">
-                <option value="social media posts">Social media posts</option>
-                <option value="email newsletters">Email newsletters</option>
-                <option value="sales copy">Sales copy / landing pages</option>
-                <option value="blog articles">Blog / long-form articles</option>
-                <option value="scripts / video content">Scripts / video content</option>
-                <option value="personal brand content">Personal brand content</option>
-                <option value="mixed / general">Mixed / general</option>
-              </optgroup>
-              <optgroup label="Business &amp; Internal">
-                <option value="internal business comms">Internal business comms</option>
-                <option value="client proposals">Client proposals / pitches</option>
-                <option value="executive communications">Executive communications / thought leadership</option>
-                <option value="investor relations">Investor relations / shareholder communications</option>
-                <option value="press releases">Press releases / corporate announcements</option>
-              </optgroup>
-              <optgroup label="Legal &amp; Compliance">
-                <option value="legal / terms of service">Terms of service / legal agreements</option>
-                <option value="legal / privacy compliance">Privacy policies / compliance documents</option>
-                <option value="legal / contracts">Contract and procurement language</option>
-                <option value="legal / regulatory">Regulatory filings / government submissions</option>
-                <option value="legal / policy">Policy documents / internal governance</option>
-              </optgroup>
-            </select>
-          </div>
-          <div class="field-group" style="margin-bottom:0">
-            <label class="field-label">Industry / niche</label>
-            <input type="text" class="field-input" id="industryInput" placeholder="e.g. fitness, SaaS, real estate…">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="flex-row mt16">
-      <button class="btn btn-primary" id="analyzeBtn" onclick="runAnalysis()">
-        <span>Analyze Voice</span> <span style="font-size:16px;">→</span>
-      </button>
-      <span class="text-muted" style="font-size:12px;" id="sampleHint">Paste at least 50 words to continue</span>
-    </div>
+<section id="faq">
+  <div class="sec-eyebrow reveal">FAQ</div>
+  <h2 class="reveal">Fair questions, straight answers</h2>
+  <div class="faq" style="margin-top:34px;">
+    <details class="reveal"><summary>Do I need my own AI key?</summary><div class="a">Yes. VoiceEngine uses your own Anthropic, OpenAI, or DeepSeek account, so BNDR doesn't resell compute or persist your key. Keys take about 2 minutes to create and the app walks you through it.</div></details>
+    <details class="reveal"><summary>Which AI tools can use my voice profile?</summary><div class="a">Any tool that accepts a system prompt or custom instructions: ChatGPT, Claude, Gemini, Copilot, API integrations, agents — the machine file is plain JSON with an embedded system prompt.</div></details>
+    <details class="reveal"><summary>Is my writing stored anywhere?</summary><div class="a">No sample is stored by BNDR. Anthropic and OpenAI requests go directly to those providers; DeepSeek requests cross an encrypted BNDR relay only long enough to forward the call. We store only finished profiles you explicitly save, and lifetime users can keep those on-device.</div></details>
+    <details class="reveal"><summary>Can I cancel my subscription?</summary><div class="a">Yes. Once the Stripe customer portal link is configured, Manage Billing opens it from the account menu. Until then, email support and BNDR will process the cancellation. Access continues through the paid period.</div></details>
+    <details class="reveal"><summary>How does the lifetime license work?</summary><div class="a">When Gumroad purchasing is enabled, you buy once and receive a license key. Paste it into "Redeem access" to unlock unlimited use on that device with no account. Existing gift and license codes can be redeemed now.</div></details>
+    <details class="reveal"><summary>Does it work on my phone?</summary><div class="a">Yes — the whole flow is mobile-first: analysis, filters, exports, saving, and the guided tour all work on any modern phone browser.</div></details>
   </div>
+</section>
 
-  <!-- ══ STEP 2: ANALYSIS ═══════════════════════════════════ -->
-  <div id="view-2" class="hidden">
-    <div class="section-eyebrow">Step 02 — Voice Decoded</div>
-    <div class="section-title">Your Writing DNA</div>
-    <div class="section-sub">The engine has dissected your sample across five dimensions. Review and edit any descriptor that doesn't land right.</div>
-
-    <div id="analysisLoading" class="loading-wrap hidden">
-      <div class="loader-bar"><div class="loader-bar-fill"></div></div>
-      <div class="loading-text">READING VOICE PATTERNS…</div>
-    </div>
-
-    <div id="analysisOutput" class="hidden">
-      <!-- Scores -->
-      <div class="panel">
-        <div class="panel-head"><div class="panel-title"><span class="panel-icon">◈</span> Voice Signature Scores</div></div>
-        <div class="panel-body" id="scoresPanel"></div>
-      </div>
-
-      <!-- Analysis cards -->
-      <div id="analysisSummary"></div>
-      <div class="analysis-grid" id="analysisCards"></div>
-
-      <!-- Edit override -->
-      <div class="panel mt16">
-        <div class="panel-head">
-          <div class="panel-title"><span class="panel-icon">◈</span> Override / Notes</div>
-          <span class="text-muted" style="font-size:11px;">Optional</span>
-        </div>
-        <div class="panel-body">
-          <textarea class="big-textarea" id="analysisOverride" placeholder="Add any corrections, extra context, or things the engine might have missed about how you write. This gets folded into the final profile." style="min-height:100px;"></textarea>
-        </div>
-      </div>
-
-      <div class="flex-row mt16">
-        <button class="btn btn-primary" onclick="goStep(3)">Configure Profile <span style="font-size:16px;">→</span></button>
-        <button class="btn btn-ghost" onclick="runAnalysis()">Re-Analyze</button>
-      </div>
-    </div>
+<section>
+  <div class="cta-band reveal">
+    <div class="sec-eyebrow">Ready when you are</div>
+    <h2>Stop sounding like everyone's AI.</h2>
+    <p class="sec-sub" style="margin:10px auto 28px; max-width:46ch;">Your first voice profile takes about three minutes. The trial is free and doesn't ask for a card.</p>
+    <a class="btn btn-primary btn-lg" href="app.html">Launch VoiceEngine</a>
   </div>
+</section>
 
-  <!-- ══ STEP 3: CONFIGURE ═══════════════════════════════════ -->
-  <div id="view-3" class="hidden">
-    <div class="section-eyebrow">Step 03 — Precision Tuning</div>
-    <div class="section-title">Define Intent &amp; Filters</div>
-    <div class="section-sub">Tell the engine what you write, who reads it, and which behaviors to enforce. Filters are hard rules — anything tagged will never appear in AI output using this profile.</div>
-
-    <div class="panel">
-      <div class="panel-head"><div class="panel-title"><span class="panel-icon">◈</span> Writing Parameters</div></div>
-      <div class="panel-body">
-        <div class="fields-row">
-          <div class="field-group">
-            <label class="field-label">Profile Name</label>
-            <input type="text" class="field-input" id="profileName" placeholder="e.g. LinkedIn Voice, Newsletter Mode…">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Primary Writing Goal</label>
-            <select class="field-select" id="writingGoal">
-              <option value="build trust and authority">Build trust and authority</option>
-              <option value="drive action and conversions">Drive action and conversions</option>
-              <option value="entertain and engage">Entertain and engage</option>
-              <option value="educate and inform">Educate and inform</option>
-              <option value="challenge and provoke">Challenge and provoke</option>
-              <option value="nurture and connect">Nurture and connect</option>
-            </select>
-          </div>
-        </div>
-        <div class="fields-row">
-          <div class="field-group">
-            <label class="field-label">Primary Audience</label>
-            <input type="text" class="field-input" id="audienceInput" placeholder="e.g. solo founders, hiring managers, fitness clients…">
-          </div>
-          <div class="field-group">
-            <label class="field-label">Content Types</label>
-            <select class="field-select" id="contentTypes">
-              <option value="short-form social posts">Short-form social posts</option>
-              <option value="long-form articles">Long-form articles</option>
-              <option value="email copy">Email copy</option>
-              <option value="scripts and spoken word">Scripts and spoken word</option>
-              <option value="sales and conversion copy">Sales and conversion copy</option>
-              <option value="mixed content types">Mixed content types</option>
-            </select>
-          </div>
-        </div>
-        <div class="field-group">
-          <label class="field-label">Things this voice never talks about (optional)</label>
-          <input type="text" class="field-input" id="avoidTopics" placeholder="e.g. competitors by name, personal failures, pricing directly…">
-        </div>
-        <div class="field-group" style="margin-bottom:0">
-          <label class="field-label">Custom Instructions (optional)</label>
-          <textarea class="field-textarea" id="customInstructions" placeholder="Any extra rules, phrases you always use, structural preferences, or things AI consistently gets wrong about your voice…"></textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filters -->
-    <div class="panel mt16">
-      <div class="panel-head">
-        <div class="panel-title"><span class="panel-icon">◈</span> Enforceable Filters</div>
-        <div class="flex-row">
-          <button class="btn btn-xs btn-ghost" onclick="selectAllFilters()">All</button>
-          <button class="btn btn-xs btn-ghost" onclick="clearFilters()">None</button>
-        </div>
-      </div>
-      <div class="panel-body">
-        <div class="filter-grid" id="filterGrid"></div>
-      </div>
-    </div>
-
-    <div class="flex-row mt16">
-      <button class="btn btn-primary" id="generateBtn" onclick="runGenerate()">
-        Generate Profile <span style="font-size:16px;">→</span>
-      </button>
-      <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
-    </div>
+<footer class="site">
+  <span class="copy">© <span id="year"></span> BNDR LLC · v3.1.0 — ALL RIGHTS RESERVED</span>
+  <div class="cols">
+    <a href="app.html">App</a>
+    <a href="#pricing">Pricing</a>
+    <a href="terms.html">Terms</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="#" id="supportLink">Support</a>
   </div>
-
-  <!-- ══ STEP 4: OUTPUT ══════════════════════════════════════ -->
-  <div id="view-4" class="hidden">
-    <div class="section-eyebrow">Step 04 — Voice Profile</div>
-    <div class="section-title">Your Files Are Ready</div>
-    <div class="section-sub">Two synced outputs: a machine file for pasting into any AI tool as a system prompt, and a human-readable instruction set for your own reference.</div>
-
-    <div id="generateLoading" class="loading-wrap hidden">
-      <div class="loader-bar"><div class="loader-bar-fill"></div></div>
-      <div class="loading-text">BUILDING VOICE PROFILE…</div>
-    </div>
-
-    <div id="outputPanel" class="hidden">
-      <!-- Tab outputs -->
-      <div class="tabs">
-        <button class="tab-btn active" data-tab="machine" onclick="switchTab('machine')">◈ Machine File (JSON)</button>
-        <button class="tab-btn" data-tab="human" onclick="switchTab('human')">◈ Human Instructions</button>
-        <button class="tab-btn" data-tab="quality" onclick="switchTab('quality')">◈ Quality Check</button>
-      </div>
-
-      <!-- Machine tab -->
-      <div class="tab-content active" id="tab-machine">
-        <div class="code-block">
-          <div class="code-actions">
-            <button class="btn btn-xs btn-ghost" onclick="copyMachine()">Copy</button>
-            <button class="btn btn-xs btn-ghost" onclick="downloadMachine()">↓ JSON</button>
-          </div>
-          <pre class="code-inner" id="machineOutput"></pre>
-        </div>
-      </div>
-
-      <!-- Human tab -->
-      <div class="tab-content" id="tab-human">
-        <div class="human-block" id="humanOutput"></div>
-        <div style="padding:12px 0 0; display:flex; gap:8px;">
-          <button class="btn btn-xs btn-ghost" onclick="copyHuman()">Copy Text</button>
-          <button class="btn btn-xs btn-ghost" onclick="downloadHuman()">↓ TXT</button>
-        </div>
-      </div>
-
-      <!-- Quality tab -->
-      <div class="tab-content" id="tab-quality">
-        <div class="code-block" style="border-radius:0 0 var(--r) var(--r);">
-          <div class="code-inner" style="padding:20px;">
-            <div id="qualityOutput">
-              <div class="empty-state">
-                <div class="empty-state-icon">◎</div>
-                Run a quality check to audit the profile against your original sample.
-              </div>
-            </div>
-            <button class="btn btn-ghost btn-sm mt16" onclick="runQualityCheck()" id="qcBtn">Run Quality Check</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Action bar -->
-      <div class="div-line"></div>
-      <div class="flex-row">
-        <button class="btn btn-primary" onclick="saveProfile()">Save Profile</button>
-        <button class="btn btn-ghost" onclick="goStep(3)">← Reconfigure</button>
-        <button class="btn btn-ghost" onclick="startOver()">Start Over</button>
-      </div>
-
-      <!-- Saved profiles -->
-      <div class="panel mt24" id="savedProfilesPanel">
-        <div class="panel-head"><div class="panel-title"><span class="panel-icon">◈</span> Saved Profiles</div></div>
-        <div class="panel-body" id="savedProfilesList">
-          <div class="empty-state"><div class="empty-state-icon">◎</div>No saved profiles yet.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div><!-- /app -->
-
-<!-- ══ APP FOOTER ═════════════════════════════════════════════ -->
-<footer class="app-footer">
-  <span>© BNDR ALL RIGHTS RESERVED</span>
-  <span class="sep">|</span>
-  <a href="YOUR_DROPBOX_LINK_HERE" target="_blank" rel="noopener noreferrer">PRIVACY POLICY</a>
 </footer>
 
-<!-- ══ BOTTOM BAR ═════════════════════════════════════════════ -->
-<div class="bottom-bar">
-  <div class="bottom-bar-left">
-    <button class="btn btn-ghost btn-sm" onclick="openKeyModal()">⌘ API Key</button>
-    <button class="btn btn-ghost btn-sm" onclick="openLoadModal()">↑ Load Profile</button>
-    <span class="saved-indicator" id="savedIndicator">✓ Saved</span>
-  </div>
-  <div class="bottom-bar-right">
-    <span style="font-size:11px; font-family:var(--font-m); color:var(--dim);" id="profileMeta"></span>
-    <span class="provider-badge anthropic" id="providerBadge">◈ ANTHROPIC</span>
-    <button class="btn btn-ghost btn-sm" id="exportAllBtn" onclick="exportAll()" disabled>↓ Export All</button>
-  </div>
-</div>
-
-<!-- ══ LOAD PROFILE MODAL ═════════════════════════════════════ -->
-<div class="modal-overlay hidden" id="loadModal">
-  <div class="modal" style="max-width:520px;">
-    <div class="modal-title">Load Saved Profile</div>
-    <div class="modal-sub">Select a profile to restore. This will overwrite your current session.</div>
-    <div id="loadModalList" class="profile-list"></div>
-    <div class="modal-actions mt16">
-      <button class="btn btn-ghost" onclick="closeLoadModal()">Close</button>
-    </div>
-  </div>
+<div id="cookieBanner" class="hidden" role="dialog" aria-live="polite" aria-label="Privacy notice">
+  <p><strong>Quick note:</strong> this site saves your settings on your device so it can work. No ads. No tracking. No selling your data. <a href="privacy.html">How we handle privacy →</a></p>
+  <button class="btn btn-primary" type="button" onclick="acceptCookies()">Got it</button>
 </div>
 
 <script>
-// ══ STATE ════════════════════════════════════════════════════
-const state = {
-  currentStep: 1,
-  apiKey: sessionStorage.getItem('apex_key') || '',
-  deepseekKey: sessionStorage.getItem('apex_ds_key') || '',
-  openaiKey: sessionStorage.getItem('apex_oai_key') || '',
-  provider: sessionStorage.getItem('apex_provider') || 'anthropic',
-  analysis: null,
-  machineFile: null,
-  humanFile: null,
-  qualityResult: null,
-  profileName: ''
-};
+const CFG = window.BNDR_CONFIG || {};
 
-// ══ CONTEXT → CONTENT TYPE AUTO-MAP ════════════════════════
-const CONTEXT_CONTENT_MAP = {
-  'social media posts':       'short-form social posts',
-  'email newsletters':         'email copy',
-  'sales copy':                'sales and conversion copy',
-  'blog articles':             'long-form articles',
-  'scripts / video content':   'scripts and spoken word',
-  'internal business comms':   'mixed content types',
-  'client proposals':          'mixed content types',
-  'personal brand content':    'short-form social posts',
-  'mixed / general':           'mixed content types',
-  'executive communications':  'long-form articles',
-  'investor relations':        'mixed content types',
-  'press releases':            'mixed content types',
-  'legal / terms of service':  'mixed content types',
-  'legal / privacy compliance':'mixed content types',
-  'legal / contracts':         'mixed content types',
-  'legal / regulatory':        'mixed content types',
-  'legal / policy':            'mixed content types'
-};
+// ── Pricing from config.js (single source of truth) ─────────
+(function () {
+  const p = CFG.PRICING || {};
+  const set = (id, noteId, plan) => {
+    const el = document.getElementById(id), note = document.getElementById(noteId);
+    if (el && p[plan]) {
+      el.replaceChildren(document.createTextNode(String(p[plan].price || '')));
+      const period = document.createElement('sub');
+      period.textContent = String(p[plan].period || '');
+      el.appendChild(period);
+    }
+    if (note && p[plan] && p[plan].note) note.textContent = p[plan].note;
+  };
+  set('priceMonthly', 'noteMonthly', 'monthly');
+  set('priceAnnual', 'noteAnnual', 'annual');
+  set('priceLifetime', 'noteLifetime', 'lifetime');
+})();
 
-function syncContextToContentType() {
-  const ctx = document.getElementById('writingContext').value;
-  const mapped = CONTEXT_CONTENT_MAP[ctx];
-  if (!mapped) return;
-  const sel = document.getElementById('contentTypes');
-  if (sel) sel.value = mapped;
-}
-
-const FILTERS = [
-  { id:'no_hype', name:'NO HYPE', desc:'Blocks superlatives, overclaiming, excitement inflation' },
-  { id:'no_hedging', name:'NO HEDGING', desc:'Removes might/could/perhaps weasel words' },
-  { id:'no_padding', name:'NO PADDING', desc:'Cuts filler phrases and transitional fluff' },
-  { id:'no_ai_tells', name:'NO AI TELLS', desc:'Blocks AI-fingerprint vocabulary (delve, leverage, etc.)' },
-  { id:'no_passive', name:'NO PASSIVE VOICE', desc:'Enforces active construction throughout' },
-  { id:'no_jargon', name:'NO JARGON', desc:'Blocks buzzwords and corporate-speak' },
-  { id:'no_soft_close', name:'NO SOFT CLOSES', desc:'Removes apologetic or tentative endings' },
-  { id:'no_over_explain', name:'NO OVER-EXPLAINING', desc:'Prevents restating what was just said' },
-  { id:'no_filler_opener', name:'NO FILLER OPENERS', desc:'Cuts "In today\'s world" and similar openers' },
-  { id:'no_em_dash_abuse', name:'NO EM-DASH ABUSE', desc:'Limits em-dash usage to intentional rhythm' },
-  { id:'no_list_default', name:'NO DEFAULT LISTS', desc:'Forces prose over reflexive bullet points' },
-  { id:'no_enthusiasm', name:'NO FALSE ENTHUSIASM', desc:'Removes exclamation marks and hollow positivity' }
-];
-
-const activeFilters = new Set(['no_hype','no_hedging','no_padding','no_ai_tells']);
-
-// ══ INIT ════════════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  renderFilters();
-  updateCharCount(document.getElementById('sampleText'));
-  loadSavedProfilesMeta();
-  syncProviderUI();
-  const activeKey = { anthropic: state.apiKey, deepseek: state.deepseekKey, openai: state.openaiKey }[state.provider];
-  if (!activeKey) openKeyModal();
-  updateStatus('idle', 'IDLE');
+// ── Lifetime button: Gumroad if configured, else in-app redeem ─
+document.getElementById('lifetimeBtn').addEventListener('click', () => {
+  const url = CFG.GUMROAD && CFG.GUMROAD.buyUrl;
+  let valid = false;
+  try { valid = new URL(String(url || '')).protocol === 'https:'; } catch (_) {}
+  if (valid) window.open(url, '_blank', 'noopener,noreferrer');
+  else window.location.href = 'app.html?redeem=1';
 });
 
-// ══ API KEY ══════════════════════════════════════════════════
-function switchProviderTab(p) {
-  ['anthropic','deepseek','openai'].forEach(id => {
-    const tab = document.getElementById('provTab' + id.charAt(0).toUpperCase() + id.slice(1));
-    const panel = document.getElementById('provPanel' + id.charAt(0).toUpperCase() + id.slice(1));
-    if (tab) tab.classList.toggle('active', id === p);
-    if (panel) panel.classList.toggle('hidden', id !== p);
-  });
-  const keyMap = { anthropic: ['apiKeyInput', state.apiKey], deepseek: ['deepseekKeyInput', state.deepseekKey], openai: ['openaiKeyInput', state.openaiKey] };
-  const [inputId, val] = keyMap[p] || [];
-  if (inputId && val) document.getElementById(inputId).value = val;
-}
-function syncProviderUI() {
-  const badge = document.getElementById('providerBadge');
-  if (!badge) return;
-  const labels = { anthropic: '◈ ANTHROPIC', deepseek: '◈ DEEPSEEK', openai: '◈ OPENAI' };
-  badge.className = 'provider-badge ' + state.provider;
-  badge.textContent = labels[state.provider] || '◈ ANTHROPIC';
-}
-function openKeyModal() {
-  document.getElementById('keyModal').classList.remove('hidden');
-  switchProviderTab(state.provider);
-  const inputIds = { anthropic: 'apiKeyInput', deepseek: 'deepseekKeyInput', openai: 'openaiKeyInput' };
-  const inp = document.getElementById(inputIds[state.provider] || 'apiKeyInput');
-  setTimeout(() => inp && inp.focus(), 100);
-}
-function closeKeyModal() {
-  document.getElementById('keyModal').classList.add('hidden');
-}
-function saveApiKey() {
-  const activeTab = ['anthropic','deepseek','openai'].find(p => {
-    const el = document.getElementById('provTab' + p.charAt(0).toUpperCase() + p.slice(1));
-    return el && el.classList.contains('active');
-  }) || 'anthropic';
-  if (activeTab === 'deepseek') {
-    const key = document.getElementById('deepseekKeyInput').value.trim();
-    if (!key || key.length < 10) { toast('Enter a valid DeepSeek API key', 'err'); return; }
-    state.deepseekKey = key; state.provider = 'deepseek';
-    sessionStorage.setItem('apex_ds_key', key); sessionStorage.setItem('apex_provider', 'deepseek');
-  } else if (activeTab === 'openai') {
-    const key = document.getElementById('openaiKeyInput').value.trim();
-    if (!key || !key.startsWith('sk-')) { toast('Enter a valid OpenAI API key', 'err'); return; }
-    state.openaiKey = key; state.provider = 'openai';
-    sessionStorage.setItem('apex_oai_key', key); sessionStorage.setItem('apex_provider', 'openai');
-  } else {
-    const key = document.getElementById('apiKeyInput').value.trim();
-    if (!key || !key.startsWith('sk-')) { toast('Enter a valid Anthropic API key', 'err'); return; }
-    state.apiKey = key; state.provider = 'anthropic';
-    sessionStorage.setItem('apex_key', key); sessionStorage.setItem('apex_provider', 'anthropic');
-  }
-  closeKeyModal(); syncProviderUI();
-  toast('API key saved for this session', 'ok');
-  updateStatus('ready', 'READY');
-}
-function requireKey() {
-  const keyMap = { anthropic: state.apiKey, deepseek: state.deepseekKey, openai: state.openaiKey };
-  if (!keyMap[state.provider]) { openKeyModal(); return false; }
-  return true;
+if (!(CFG.GUMROAD && CFG.GUMROAD.buyUrl)) {
+  document.getElementById('lifetimeBtn').textContent = 'Redeem a Code';
+  document.getElementById('noteLifetime').textContent = 'Purchases opening soon · codes work now';
 }
 
-// ══ CLAUDE API CALL ══════════════════════════════════════════
-async function callClaude(systemPrompt, userPrompt, maxTokens = 2000) {
-  if (state.provider === 'deepseek') return callDeepSeek(systemPrompt, userPrompt, maxTokens);
-  if (state.provider === 'openai') return callOpenAI(systemPrompt, userPrompt, maxTokens);
-  if (!requireKey()) throw new Error('No API key');
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': state.apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: maxTokens,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }]
-    })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(()=>({error:{message:'Unknown API error'}}));
-    throw new Error(err.error?.message || `API error ${res.status}`);
-  }
-  const data = await res.json();
-  return data.content[0]?.text || '';
+// ── Support link ─────────────────────────────────────────────
+(function () {
+  const a = document.getElementById('supportLink');
+  if (CFG.SUPPORT_EMAIL) a.href = 'mailto:' + CFG.SUPPORT_EMAIL;
+  else a.style.display = 'none';
+})();
+
+// ── Mobile nav ───────────────────────────────────────────────
+const burger = document.getElementById('navBurger');
+const links  = document.getElementById('navLinks');
+burger.addEventListener('click', () => {
+  const open = links.classList.toggle('open');
+  burger.setAttribute('aria-expanded', String(open));
+  burger.textContent = open ? '✕' : '☰';
+});
+links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  links.classList.remove('open');
+  burger.setAttribute('aria-expanded', 'false');
+  burger.textContent = '☰';
+}));
+
+// ── Terminal typing demo ─────────────────────────────────────
+const LINES = [
+  ['t-dim', '$ voiceengine analyze --sample "my_writing.txt"'],
+  ['t-ice', '▸ reading voice patterns… 16 dimensions'],
+  ['', '{'],
+  ['', '  "voice_identity": {'],
+  ['t-mag', '    "tone_primary": "direct",'],
+  ['t-mag', '    "energy_level": 74,'],
+  ['t-mag', '    "sentence_rhythm": "short-punch, long-build"'],
+  ['', '  },'],
+  ['t-amber', '  "active_filters": ["no_hype", "no_hedging", "no_ai_tells"],'],
+  ['t-ice', '  "system_prompt": "Write exactly as this author…"'],
+  ['', '}'],
+  ['t-green', '✓ profile ready — deploy to any AI'],
+];
+const body = document.getElementById('termBody');
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+function renderStatic() {
+  body.innerHTML = LINES.map(([c, t]) => '<span class="' + c + '">' + t.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>').join('\n');
 }
-
-// ══ DEEPSEEK API CALL ════════════════════════════════════════
-async function callDeepSeek(systemPrompt, userPrompt, maxTokens = 2000) {
-  if (!state.deepseekKey) { openKeyModal(); throw new Error('No DeepSeek API key'); }
-  let res;
-  try {
-    res = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.deepseekKey}`
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        max_tokens: maxTokens,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        stream: false
-      })
-    });
-  } catch (err) {
-    // TypeError = network/CORS failure
-    throw new Error('DeepSeek unreachable from browser — CORS restriction. Try Anthropic or a server-side proxy.');
-  }
-  if (!res.ok) {
-    const err = await res.json().catch(()=>({error:{message:'Unknown API error'}}));
-    throw new Error(err.error?.message || `DeepSeek API error ${res.status}`);
-  }
-  const data = await res.json();
-  return data.choices[0]?.message?.content || '';
-}
-
-// ══ OPENAI API CALL ══════════════════════════════════════════
-async function callOpenAI(systemPrompt, userPrompt, maxTokens = 2000) {
-  if (!state.openaiKey) { openKeyModal(); throw new Error('No OpenAI API key'); }
-  let res;
-  try {
-    res = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${state.openaiKey}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        max_tokens: maxTokens,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ]
-      })
-    });
-  } catch (err) {
-    throw new Error('OpenAI unreachable. Check your network connection and try again.');
-  }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: { message: 'Unknown API error' } }));
-    throw new Error(err.error?.message || `OpenAI API error ${res.status}`);
-  }
-  const data = await res.json();
-  return data.choices[0]?.message?.content || '';
-}
-function updateStatus(mode, text) {
-  const pill = document.getElementById('statusPill');
-  const txt = document.getElementById('statusText');
-  pill.className = 'status-pill ' + mode;
-  txt.textContent = text;
-}
-
-// ══ STEP NAVIGATION ══════════════════════════════════════════
-function navStep(n) {
-  if (n > state.currentStep + 1) { toast('Complete previous steps first'); return; }
-  goStep(n);
-}
-function goStep(n) {
-  for (let i=1; i<=4; i++) {
-    document.getElementById(`view-${i}`).classList.toggle('hidden', i !== n);
-  }
-  document.querySelectorAll('.step-item').forEach(el => {
-    const s = parseInt(el.dataset.step);
-    el.classList.remove('active','done');
-    if (s === n) el.classList.add('active');
-    else if (s < n) el.classList.add('done');
-    const num = el.querySelector('.step-num');
-    if (s < n) num.textContent = '✓';
-    else num.textContent = s;
-  });
-  state.currentStep = n;
-  window.scrollTo({top:0, behavior:'smooth'});
-}
-
-// ══ SAMPLE STEP ═══════════════════════════════════════════════
-function updateCharCount(el) {
-  const words = el.value.trim().split(/\s+/).filter(w=>w).length;
-  const cc = document.getElementById('charCount');
-  const hint = document.getElementById('sampleHint');
-  const btn = document.getElementById('analyzeBtn');
-  cc.textContent = `${words} words`;
-  cc.className = 'char-count' + (words >= 50 ? ' good' : '');
-  if (words < 50) {
-    hint.textContent = `Paste at least 50 words to continue (${50-words} more needed)`;
-    btn.disabled = true;
-  } else {
-    hint.textContent = `✓ ${words} words — ready to analyze`;
-    btn.disabled = false;
-  }
-}
-function clearSample() {
-  document.getElementById('sampleText').value = '';
-  updateCharCount(document.getElementById('sampleText'));
-}
-function loadExample() {
-  document.getElementById('sampleText').value = `I spent three years trying to write like everyone else in my industry.
-Polished. Safe. Professional. The kind of stuff that sounds like it was written by a committee of people who were afraid of being wrong.
-
-Here's the problem: nobody reads that. Not really.
-
-They skim it, nod along, and forget it by Tuesday. Because it doesn't sound like a person — it sounds like a category. And categories don't build businesses. People do.
-
-When I switched to writing the way I actually think — direct, a little impatient, willing to call out what isn't working — things changed. Not overnight. But the right people started noticing. The ones who were tired of the same recycled advice dressed up in different fonts.
-
-I'm not saying be contrarian for its own sake. That's just another performance.
-
-What I'm saying is: the voice that makes people uncomfortable in the room is usually the one that makes people pay attention on the page. Not uncomfortable like offensive. Uncomfortable like honest. Like someone who actually has a point of view and isn't waiting for permission to say it.
-
-Most people are writing for approval. I'm writing to be understood. Those are very different objectives — and they produce very different results.
-
-If you want safe, predictable, committee-approved writing — there are a thousand tools for that.
-This isn't one of them.`;
-  updateCharCount(document.getElementById('sampleText'));
-}
-
-// ══ ANALYSIS ═════════════════════════════════════════════════
-async function runAnalysis() {
-  if (!requireKey()) return;
-  const sample = document.getElementById('sampleText').value.trim();
-  if (!sample || sample.split(/\s+/).length < 50) { toast('Need at least 50 words', 'err'); return; }
-
-  goStep(2);
-  document.getElementById('analysisLoading').classList.remove('hidden');
-  document.getElementById('analysisOutput').classList.add('hidden');
-  updateStatus('working', 'ANALYZING…');
-
-  const context = document.getElementById('writingContext').value;
-  const industry = document.getElementById('industryInput').value;
-
-  const systemPrompt = `You are a precision voice-pattern extraction engine. Your function is forensic linguistic analysis: you study writing samples the way a typographer studies letterforms — every observable pattern is evidence, nothing is assumed. You extract measurable, reproducible voice characteristics from text. You base every output field on evidence present in the sample only. You never infer personality, invent traits, or extrapolate beyond what the text demonstrates. You output valid JSON only. No markdown fences, no preamble, no explanation outside the structure.`;
-
-  const userPrompt = `<task>
-Analyze the writing sample below. Every field you complete must cite observable evidence from the text — not inferences about the author's personality or intent. Treat the sample as data.
-</task>
-
-<output_schema>
-Return exactly this JSON object. No additional keys. No commentary outside the braces.
-{
-  "tone_primary": "the dominant register — one precise word or hyphenated compound that names the voice's primary mode (e.g. 'direct', 'sardonic', 'measured-authoritative', 'warm-urgent')",
-  "tone_secondary": "the underlying counter-tone that creates texture — one word or compound (e.g. 'impatient', 'skeptical', 'earnest', 'dry')",
-  "energy_level": <integer 0-100>,
-  "formality_score": <integer 0-100>,
-  "directness_score": <integer 0-100>,
-  "specificity_score": <integer 0-100>,
-  "confidence_score": <integer 0-100>,
-  "sentence_rhythm": "a precise mechanical descriptor — include typical length range and structural pattern (e.g. 'staccato 6-12 word declarations, fragments used for emphasis', 'long structured sentences averaging 22+ words with embedded clauses', 'mixed: short-sentence punches followed by one expansive analytical sentence')",
-  "paragraph_style": "how paragraphs are built and sized — include typical sentence count and internal structure (e.g. 'single-sentence standalone punches', '2-4 sentences: claim + evidence + turn', 'dense 5-7 sentence blocks with full internal argument')",
-  "structural_pattern": "the underlying logic architecture — how the author builds a point from start to finish (e.g. 'thesis-first then deconstruct objections', 'problem statement → reframe → implication', 'anecdote → extraction → principle')",
-  "risk_handling": "exactly how the author treats controversial, polarizing, or uncomfortable claims — do they commit, hedge, reframe, confront, or qualify? Include evidence of the method",
-  "signature_moves": ["3-5 distinct, observable writing behaviors — each phrased as a specific action verb + object (e.g. 'opens with a blunt declarative then immediately complicates it', 'uses rhetorical questions to name what the reader is already thinking', 'ends paragraphs with a short reversal sentence')"],
-  "vocabulary_register": "precise characterization of word choice — include: complexity level, Anglo-Saxon vs Latinate tendency, whether domain jargon appears, any notable vocabulary patterns",
-  "phrasing_habits": ["3-4 recurring syntactic patterns — each described as a specific construction (e.g. 'X. Not Y. contrast pair used for emphasis', 'sentence fragment as standalone paragraph for impact', 'em-dash used to introduce a sharp qualifier mid-sentence')"],
-  "what_they_avoid": ["3-4 things demonstrably absent — constructions, hedges, vocabulary, or structural choices not present in the sample (e.g. 'never opens with a question', 'no passive voice constructions', 'avoids abstract nouns to open claims')"],
-  "one_sentence_summary": "a single sentence written as a replication instruction — include the two most forensically distinctive traits, phrased so a different AI could use this sentence alone to match the voice (e.g. 'Write in a blunt, first-person direct register with staccato sentence rhythm and zero hedging on opinions')"
-}
-</output_schema>
-
-<score_calibration>
-Apply these anchors precisely before assigning each integer score:
-
-energy_level:
-  90-100 = kinetic, visceral, manifesto-grade urgency — sentences feel propelled
-  70-89  = active, high conviction, propulsive forward momentum
-  50-69  = engaged, conversational, present — neither flat nor urgent
-  25-49  = measured, considered, deliberately low-temperature
-  0-24   = flat, minimal, slow-paced, passive
-
-formality_score:
-  90-100 = legal/academic/C-suite — complex syntax, Latinate vocabulary, zero contractions
-  70-89  = business professional — polished, structured, no slang
-  45-69  = professional-casual — educated everyday, occasional contraction
-  20-44  = conversational peer-level — relaxed, idiomatic
-  0-19   = colloquial, raw, unfiltered — fragments, slang, stream-of-consciousness
-
-directness_score:
-  90-100 = conclusion stated in first sentence, no softening, no build-up
-  70-89  = direct with minimal framing — gets to the point within 1-2 sentences
-  45-69  = balanced — builds context before landing the point
-  20-44  = indirect — leads with context, conclusion arrives late
-  0-19   = heavily hedged, circular, or conclusion buried or absent
-
-specificity_score:
-  90-100 = precise figures, named examples, concrete nouns throughout — zero abstraction
-  70-89  = mostly concrete with occasional abstract framing
-  45-69  = mixed — alternates between concrete examples and abstract principles
-  20-44  = mostly abstract — general claims without grounding
-  0-19   = pure abstraction — no concrete anchors
-
-confidence_score:
-  90-100 = states opinions as settled facts, zero hedging, no qualification
-  70-89  = confident with minimal qualification on contested claims
-  45-69  = balanced — asserts some things firmly, qualifies others
-  20-44  = frequent hedging — qualifies most claims before committing
-  0-19   = deeply uncertain — constant softening, apologetic, deferential
-</score_calibration>
-
-${context ? `<context>Primary use: ${context}. Factor this into rhythm, formality, and structural_pattern calibration.</context>` : ''}
-${industry ? `<domain>Industry: ${industry}. Incorporate any domain-specific vocabulary patterns into vocabulary_register.</domain>` : ''}
-
-<sample>
-${sample}
-</sample>
-
-Return only the JSON object.`;
-
-  try {
-    const raw = await callClaude(systemPrompt, userPrompt, 1500);
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-    state.analysis = JSON.parse(cleaned);
-    renderAnalysis(state.analysis);
-    // Auto-populate profile name from summary if field is still empty
-    const _nameField = document.getElementById('profileName');
-    if (!_nameField.value.trim() && state.analysis?.one_sentence_summary) {
-      const _s = state.analysis.one_sentence_summary;
-      _nameField.value = _s.length > 48 ? _s.slice(0, 48).replace(/\s\S*$/, '').trim() + '…' : _s;
+async function typeLoop() {
+  while (true) {
+    body.innerHTML = '';
+    for (const [c, t] of LINES) {
+      const span = document.createElement('span');
+      span.className = c;
+      body.appendChild(span);
+      const cur = document.createElement('i');
+      cur.className = 'cursor';
+      body.appendChild(cur);
+      for (let i = 0; i <= t.length; i++) {
+        span.textContent = t.slice(0, i);
+        await new Promise(r => setTimeout(r, 10 + Math.random() * 14));
+      }
+      cur.remove();
+      body.appendChild(document.createTextNode('\n'));
     }
-    document.getElementById('analysisLoading').classList.add('hidden');
-    document.getElementById('analysisOutput').classList.remove('hidden');
-    document.getElementById('analysisOutput').classList.add('fade-in');
-    updateStatus('ready', 'ANALYZED');
-    toast('Voice analysis complete', 'ok');
-  } catch(e) {
-    document.getElementById('analysisLoading').classList.add('hidden');
-    goStep(1);
-    updateStatus('error', 'ERROR');
-    toast(e.message || 'Analysis failed', 'err');
+    const cur = document.createElement('i');
+    cur.className = 'cursor';
+    body.appendChild(cur);
+    await new Promise(r => setTimeout(r, 6000));
   }
 }
+if (reduced) renderStatic(); else typeLoop();
 
-function renderAnalysis(a) {
-  // Scores
-  const scores = [
-    { label:'Energy', val: a.energy_level },
-    { label:'Directness', val: a.directness_score },
-    { label:'Confidence', val: a.confidence_score },
-    { label:'Formality', val: a.formality_score },
-    { label:'Specificity', val: a.specificity_score }
-  ];
-  document.getElementById('scoresPanel').innerHTML = scores.map(s => `
-    <div class="score-row">
-      <div class="score-label">${s.label}</div>
-      <div class="score-bar-wrap"><div class="score-bar-fill" style="width:0%" data-target="${s.val}%"></div></div>
-      <div class="score-val">${s.val}</div>
-    </div>
-  `).join('');
-  setTimeout(()=>{
-    document.querySelectorAll('.score-bar-fill').forEach(el => {
-      el.style.width = el.dataset.target;
-    });
-  }, 100);
-
-  // Cards
-  const cards = [
-    { label:'Primary Tone', value: `<strong>${a.tone_primary}</strong> × ${a.tone_secondary}` },
-    { label:'Sentence Rhythm', value: a.sentence_rhythm },
-    { label:'Paragraph Style', value: a.paragraph_style },
-    { label:'Risk Handling', value: a.risk_handling },
-    { label:'Vocabulary Register', value: a.vocabulary_register },
-    { label:'Structural Pattern', value: a.structural_pattern },
-    { label:'Signature Moves', value: a.signature_moves ? `<ul class="trait-list">${a.signature_moves.map(m=>`<li>${m}</li>`).join('')}</ul>` : '' },
-    { label:'What They Avoid', value: a.what_they_avoid ? `<ul class="trait-list">${a.what_they_avoid.map(m=>`<li>${m}</li>`).join('')}</ul>` : '' }
-  ];
-  document.getElementById('analysisCards').innerHTML = cards.map(c => `
-    <div class="analysis-card">
-      <div class="analysis-card-label">${c.label}</div>
-      <div class="analysis-card-value">${c.value}</div>
-    </div>
-  `).join('');
-
-  // Summary — overwrites dedicated container, prevents double-render on re-analyze
-  document.getElementById('analysisSummary').innerHTML = a.one_sentence_summary ? `
-    <div class="panel" style="margin-bottom:12px; border-color:var(--mag-mid);">
-      <div class="panel-body" style="padding:16px 20px;">
-        <div class="section-eyebrow" style="margin-bottom:6px;">Voice Summary</div>
-        <p style="font-size:15px; font-weight:600; line-height:1.5;">${a.one_sentence_summary}</p>
-      </div>
-    </div>
-  ` : '';
+// ── Cookie banner (shared key with the app) ──────────────────
+function acceptCookies() {
+  try { localStorage.setItem('bndr_consent', new Date().toISOString()); } catch (e) {}
+  document.getElementById('cookieBanner').classList.add('hidden');
 }
+(function () {
+  let ok = null;
+  try { ok = localStorage.getItem('bndr_consent'); } catch (e) {}
+  if (!ok) document.getElementById('cookieBanner').classList.remove('hidden');
+})();
 
-// ══ FILTERS ══════════════════════════════════════════════════
-function renderFilters() {
-  document.getElementById('filterGrid').innerHTML = FILTERS.map(f => `
-    <div class="filter-card ${activeFilters.has(f.id) ? 'active' : ''}" onclick="toggleFilter('${f.id}',this)">
-      <div class="filter-toggle">${activeFilters.has(f.id) ? '✓' : ''}</div>
-      <div>
-        <div class="filter-name">${f.name}</div>
-        <div class="filter-desc">${f.desc}</div>
-      </div>
-    </div>
-  `).join('');
-}
-function toggleFilter(id, el) {
-  if (activeFilters.has(id)) { activeFilters.delete(id); el.classList.remove('active'); el.querySelector('.filter-toggle').textContent=''; }
-  else { activeFilters.add(id); el.classList.add('active'); el.querySelector('.filter-toggle').textContent='✓'; }
-}
-function selectAllFilters() { FILTERS.forEach(f=>activeFilters.add(f.id)); renderFilters(); }
-function clearFilters() { activeFilters.clear(); renderFilters(); }
-
-// ══ GENERATE PROFILE ══════════════════════════════════════════
-async function runGenerate() {
-  if (!requireKey()) return;
-  if (!state.analysis) { toast('Run analysis first', 'err'); return; }
-
-  const profileName = document.getElementById('profileName').value.trim() || 'Voice Profile';
-  const goal = document.getElementById('writingGoal').value;
-  const audience = document.getElementById('audienceInput').value.trim();
-  const contentTypes = document.getElementById('contentTypes').value;
-  const avoid = document.getElementById('avoidTopics').value.trim();
-  const custom = document.getElementById('customInstructions').value.trim();
-  const override = document.getElementById('analysisOverride').value.trim();
-  const filters = FILTERS.filter(f => activeFilters.has(f.id));
-  state.profileName = profileName;
-
-  goStep(4);
-  document.getElementById('generateLoading').classList.remove('hidden');
-  document.getElementById('outputPanel').classList.add('hidden');
-  updateStatus('working', 'GENERATING…');
-
-  const systemPrompt = `You are a voice profile compiler for enterprise writing systems. Your output is a deterministic AI writing blueprint — a structured instruction set that any AI assistant can follow to reproduce a specific human's voice with precision. Your profiles are used by Fortune 500 brand teams, creative directors, and founders to enforce voice consistency at scale. Every field you produce is an actionable instruction, not a description. Vague outputs fail. Precise outputs succeed. You output valid JSON only — no markdown fences, no preamble, no prose outside the structure.`;
-
-  // Extract only the fields the compiler actually needs — avoids passing raw analysis noise
-  const _voiceDNA = {
-    tone_primary:      state.analysis.tone_primary,
-    tone_secondary:    state.analysis.tone_secondary,
-    energy_level:      state.analysis.energy_level,
-    formality_score:   state.analysis.formality_score,
-    directness_score:  state.analysis.directness_score,
-    confidence_score:  state.analysis.confidence_score,
-    specificity_score: state.analysis.specificity_score,
-    sentence_rhythm:   state.analysis.sentence_rhythm,
-    paragraph_style:   state.analysis.paragraph_style,
-    structural_pattern:state.analysis.structural_pattern,
-    risk_handling:     state.analysis.risk_handling,
-    signature_moves:   state.analysis.signature_moves,
-    vocabulary_register:state.analysis.vocabulary_register,
-    phrasing_habits:   state.analysis.phrasing_habits,
-    what_they_avoid:   state.analysis.what_they_avoid,
-    one_sentence_summary: state.analysis.one_sentence_summary
-  };
-
-  const userPrompt = `<task>
-Compile a complete voice profile from the forensic voice analysis below. Translate every characteristic into a precise, enforceable writing instruction. This profile will be loaded as a system prompt into enterprise AI tools. Every rule must be specific enough that two different AI models reading the same profile produce nearly identical output style.
-</task>
-
-<voice_dna>
-${JSON.stringify(_voiceDNA, null, 2)}
-</voice_dna>
-
-${override ? `<user_corrections>
-${override}
-</user_corrections>` : ''}
-
-<parameters>
-Profile name: ${profileName}
-Writing goal: ${goal}
-Primary audience: ${audience || 'professional adult reader'}
-Content type: ${contentTypes}
-${avoid ? `Topics/subjects to never address: ${avoid}` : ''}
-${custom ? `Additional instructions from the author: ${custom}` : ''}
-</parameters>
-
-<active_filters>
-These are non-negotiable hard constraints. Every filter must appear as an explicit, named rule in the system_prompt field.
-${filters.map(f => `${f.name}: ${f.desc}`).join('\n')}
-</active_filters>
-
-<output_schema>
-Return exactly this JSON object. All rule fields must be written as imperative instructions, not descriptions.
-{
-  "profile_name": "${profileName}",
-  "version": "1.0",
-  "generated": "ISO timestamp",
-  "voice_identity": {
-    "one_line": "a single replication-ready sentence: 'Write as a [tone] voice that [2 most distinctive structural traits]'",
-    "tone_stack": ["primary tone", "secondary tone", "tertiary if present — omit if not"],
-    "energy": "a precise energy instruction (e.g. 'High-conviction, propulsive — sentences should feel forward-moving, never stalled')",
-    "formality": "a precise formality instruction (e.g. 'Professional-casual: educated but never corporate, contractions are acceptable')",
-    "risk_tolerance": "a precise instruction for how to handle contested or uncomfortable claims (e.g. 'State opinions as settled — no hedging, no qualification unless factually required')"
-  },
-  "writing_rules": {
-    "sentence_structure": "an exact, imperative rule (e.g. 'Keep sentences under 18 words by default. Use fragments deliberately for emphasis. Never use passive voice.')",
-    "paragraph_structure": "an exact, imperative rule (e.g. 'Default to 2-3 sentence paragraphs. Open each paragraph with the main claim. One-sentence paragraphs are permitted for impact.')",
-    "opening_style": "an exact, imperative rule for how every piece should begin (e.g. 'Open with a declarative claim or a precise observation — never a question, never a throat-clear')",
-    "closing_style": "an exact, imperative rule for how every piece should end (e.g. 'End with a short, conclusive sentence that implies forward motion — no calls to action unless specified')",
-    "rhythm_pattern": "an exact rhythm instruction (e.g. 'Alternate between a short declaration (6-10 words) and a longer explanatory sentence (15-25 words) to create cadence')",
-    "transition_style": "an exact instruction for connecting ideas (e.g. 'Do not use transitional filler words (furthermore, additionally, however). Use white space and sequencing instead.')"
-  },
-  "vocabulary": {
-    "register": "a precise vocabulary instruction specifying complexity, preferred word origins, and any domain terms",
-    "preferred_patterns": ["4-6 specific phrasing constructions to actively use — each written as an example, not a description"],
-    "banned_words": ["10-14 specific words or phrases that must never appear — sourced from what_they_avoid and active filters"],
-    "brand_words": ["3-5 words or short phrases that are the author's verbal fingerprint — these should appear naturally"]
-  },
-  "structural_logic": {
-    "argument_style": "an exact instruction for how to build a point (e.g. 'State the conclusion first. Follow with the evidence. Close by naming the implication.')",
-    "evidence_preference": "an exact instruction for how to support claims (e.g. 'Prefer specific, named examples over general principles. Cite real numbers when possible.')",
-    "tension_handling": "an exact instruction for managing conflict or challenge in writing (e.g. 'Name the opposing view directly and immediately dismiss or complicate it — do not acknowledge it passively')",
-    "opinion_expression": "an exact instruction for stating views (e.g. 'State opinions as facts unless the claim requires factual qualification. No softening.')"
-  },
-  "active_filters": ${JSON.stringify(filters.map(f => ({ id: f.id, name: f.name, rule: f.desc })))},
-  "context": {
-    "goal": "${goal}",
-    "audience": "${audience || 'professional general'}",
-    "content_type": "${contentTypes}",
-    "avoid": ${JSON.stringify(avoid || '')}
-  },
-  "system_prompt": "A complete, copy-paste-ready system prompt of 250-400 words. Structure it as follows: (1) Role declaration: 'You are a writing assistant that reproduces [author name or profile name]s voice exactly.' (2) Voice identity: tone stack and energy level. (3) Sentence and paragraph rules: exact mechanical instructions. (4) Vocabulary rules: banned words list and preferred patterns. (5) Structural logic: how to open, close, build arguments. (6) Hard filter constraints: each active filter as an explicit IF-THEN rule. (7) Context: goal, audience, content type. Every instruction must be specific enough that it eliminates ambiguity — no adjectives without definitions, no vague directives like 'be clear'."
-}
-</output_schema>
-
-Return only the JSON object. The system_prompt field is the primary deliverable — it must be complete and self-contained.`;
-
-  try {
-    const raw = await callClaude(systemPrompt, userPrompt, 2500);
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-    state.machineFile = JSON.parse(cleaned);
-    state.machineFile.generated = new Date().toISOString();
-    state.humanFile = buildHumanDoc(state.machineFile);
-    renderOutput();
-    document.getElementById('generateLoading').classList.add('hidden');
-    document.getElementById('outputPanel').classList.remove('hidden');
-    document.getElementById('outputPanel').classList.add('fade-in');
-    document.getElementById('exportAllBtn').disabled = false;
-    updateStatus('ready', 'COMPLETE');
-    updateProfileMeta();
-    toast('Profile generated', 'ok');
-  } catch(e) {
-    document.getElementById('generateLoading').classList.add('hidden');
-    goStep(3);
-    updateStatus('error', 'ERROR');
-    toast(e.message || 'Generation failed', 'err');
-  }
-}
-
-function buildHumanDoc(profile) {
-  const m = profile;
-  const e = escapeHtml; // alias — ALL AI-sourced fields must be escaped
-  const filters = m.active_filters || [];
-  let html = '';
-  html += `<h3>Voice Identity</h3>`;
-  html += `<p><span class="hl">${e(m.voice_identity?.one_line || '')}</span></p>`;
-  html += `<p>Tone: ${(m.voice_identity?.tone_stack||[]).map(e).join(' → ')} | Energy: ${e(m.voice_identity?.energy||'')} | Formality: ${e(m.voice_identity?.formality||'')}</p>`;
-
-  html += `<h3>Writing Rules</h3><ul>`;
-  const wr = m.writing_rules || {};
-  if (wr.sentence_structure) html += `<li><span class="hl">Sentences:</span> ${e(wr.sentence_structure)}</li>`;
-  if (wr.paragraph_structure) html += `<li><span class="hl">Paragraphs:</span> ${e(wr.paragraph_structure)}</li>`;
-  if (wr.opening_style) html += `<li><span class="hl">Openings:</span> ${e(wr.opening_style)}</li>`;
-  if (wr.closing_style) html += `<li><span class="hl">Closings:</span> ${e(wr.closing_style)}</li>`;
-  if (wr.rhythm_pattern) html += `<li><span class="hl">Rhythm:</span> ${e(wr.rhythm_pattern)}</li>`;
-  if (wr.transition_style) html += `<li><span class="hl">Transitions:</span> ${e(wr.transition_style)}</li>`;
-  html += `</ul>`;
-
-  html += `<h3>Vocabulary</h3>`;
-  if (m.vocabulary?.preferred_patterns?.length) {
-    html += `<p><span class="hl">Use these patterns:</span></p><ul>${m.vocabulary.preferred_patterns.map(p=>`<li>${e(p)}</li>`).join('')}</ul>`;
-  }
-  if (m.vocabulary?.banned_words?.length) {
-    html += `<p><span class="hl">Never use:</span> ${m.vocabulary.banned_words.map(e).join(', ')}</p>`;
-  }
-  if (m.vocabulary?.brand_words?.length) {
-    html += `<p><span class="hl">Voice-defining words:</span> ${m.vocabulary.brand_words.map(e).join(', ')}</p>`;
-  }
-
-  html += `<h3>How You Build Arguments</h3>`;
-  const sl = m.structural_logic || {};
-  html += `<ul>`;
-  if (sl.argument_style) html += `<li>${e(sl.argument_style)}</li>`;
-  if (sl.evidence_preference) html += `<li>${e(sl.evidence_preference)}</li>`;
-  if (sl.tension_handling) html += `<li>${e(sl.tension_handling)}</li>`;
-  if (sl.opinion_expression) html += `<li>${e(sl.opinion_expression)}</li>`;
-  html += `</ul>`;
-
-  if (filters.length) {
-    html += `<h3>Active Filters (Hard Rules)</h3><ul>`;
-    filters.forEach(f => { html += `<li><span class="hl">${e(f.name)}:</span> ${e(f.rule)}</li>`; });
-    html += `</ul>`;
-  }
-
-  html += `<h3>Context</h3>`;
-  const ctx = m.context || {};
-  html += `<ul>`;
-  if (ctx.goal) html += `<li><span class="hl">Goal:</span> ${e(ctx.goal)}</li>`;
-  if (ctx.audience) html += `<li><span class="hl">Audience:</span> ${e(ctx.audience)}</li>`;
-  if (ctx.content_type) html += `<li><span class="hl">Content type:</span> ${e(ctx.content_type)}</li>`;
-  if (ctx.avoid) html += `<li><span class="hl">Avoid:</span> ${e(ctx.avoid)}</li>`;
-  html += `</ul>`;
-
-  html += `<h3>Ready-to-Use System Prompt</h3>`;
-  html += `<div style="background:var(--panel);border:1px solid var(--mag-mid);border-radius:var(--r);padding:16px;font-size:12px;font-family:var(--font-m);line-height:1.8;color:var(--muted);white-space:pre-wrap;">${e(m.system_prompt||'')}</div>`;
-
-  return html;
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function renderOutput() {
-  document.getElementById('machineOutput').textContent = JSON.stringify(state.machineFile, null, 2);
-  document.getElementById('humanOutput').innerHTML = state.humanFile;
-}
-
-// ══ QUALITY CHECK ══════════════════════════════════════════════
-async function runQualityCheck() {
-  if (!requireKey()) return;
-  if (!state.machineFile) { toast('Generate a profile first', 'err'); return; }
-  const btn = document.getElementById('qcBtn');
-  btn.disabled = true; btn.textContent = 'Running…';
-  updateStatus('working', 'QC CHECK…');
-
-  const sample = document.getElementById('sampleText').value.trim();
-  const systemPrompt = `You are a voice profile quality checker. Evaluate whether a voice profile accurately captures and can reproduce the voice from the original sample. Return only JSON.`;
-  const userPrompt = `Compare this voice profile against the original writing sample and score the match.
-
-ORIGINAL SAMPLE (first 400 words):
-${sample.split(/\s+/).slice(0,400).join(' ')}
-
-VOICE PROFILE SYSTEM PROMPT:
-${state.machineFile.system_prompt}
-
-Return this JSON:
-{
-  "overall_score": 0-100,
-  "pass": true/false,
-  "dimensions": {
-    "tone_accuracy": { "score": 0-100, "note": "one sentence" },
-    "rhythm_capture": { "score": 0-100, "note": "one sentence" },
-    "vocabulary_match": { "score": 0-100, "note": "one sentence" },
-    "filter_coverage": { "score": 0-100, "note": "one sentence" },
-    "drift_resistance": { "score": 0-100, "note": "one sentence" }
-  },
-  "strengths": ["2-3 strings"],
-  "gaps": ["0-2 strings"],
-  "verdict": "one sentence"
-}`;
-
-  try {
-    const raw = await callClaude(systemPrompt, userPrompt, 800);
-    const cleaned = raw.replace(/```json|```/g, '').trim();
-    state.qualityResult = JSON.parse(cleaned);
-    renderQuality(state.qualityResult);
-    updateStatus('ready', 'COMPLETE');
-    toast('Quality check complete', 'ok');
-  } catch(e) {
-    toast(e.message || 'QC failed', 'err');
-    updateStatus('error', 'ERROR');
-  } finally {
-    btn.disabled = false; btn.textContent = 'Re-Run Quality Check';
-  }
-}
-
-function renderQuality(qc) {
-  const scoreClass = qc.overall_score >= 80 ? 'pass' : qc.overall_score >= 60 ? 'warn' : 'fail';
-  const passLabel = qc.pass ? 'PASS' : 'NEEDS WORK';
-  const dims = qc.dimensions || {};
-  let html = `
-    <div style="display:flex;align-items:flex-end;gap:20px;margin-bottom:24px;flex-wrap:wrap;">
-      <div>
-        <div class="quality-score-big ${scoreClass}">${qc.overall_score}</div>
-        <div class="quality-label">Overall Score — <span style="color:${qc.pass ? 'var(--ice)' : 'var(--amber)'}">${passLabel}</span></div>
-      </div>
-      <div style="flex:1;min-width:200px;">
-        <p style="font-size:13px;color:var(--muted);line-height:1.6;">${qc.verdict || ''}</p>
-      </div>
-    </div>
-  `;
-  const dimKeys = Object.keys(dims);
-  dimKeys.forEach(k => {
-    const d = dims[k];
-    const sc = scoreClass === 'pass' ? 'pass' : d.score >= 80 ? 'pass' : d.score >= 60 ? 'warn' : 'fail';
-    html += `<div class="quality-row">
-      <div class="quality-check-name">${k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase())} <span style="font-size:11px;font-family:var(--font-m);color:var(--dim);display:block;margin-top:2px;">${d.note||''}</span></div>
-      <div class="quality-badge ${sc}">${d.score}/100</div>
-    </div>`;
-  });
-  if (qc.strengths?.length) {
-    html += `<div style="margin-top:16px;"><div class="section-eyebrow" style="margin-bottom:8px;">Strengths</div>`;
-    html += qc.strengths.map(s=>`<p style="font-size:12px;color:var(--ice);padding:3px 0;">✓ ${s}</p>`).join('');
-    html += `</div>`;
-  }
-  if (qc.gaps?.length) {
-    html += `<div style="margin-top:12px;"><div class="section-eyebrow" style="margin-bottom:8px;">Gaps</div>`;
-    html += qc.gaps.map(g=>`<p style="font-size:12px;color:var(--amber);padding:3px 0;">△ ${g}</p>`).join('');
-    html += `</div>`;
-  }
-  document.getElementById('qualityOutput').innerHTML = html;
-  document.getElementById('qcBtn').textContent = 'Re-Run Quality Check';
-
-  // Auto-heal if score < 70
-  if (!qc.pass && qc.overall_score < 70) {
-    setTimeout(() => {
-      toast('Score low — consider re-generating with your override notes', 'warn');
-    }, 1000);
-  }
-}
-
-// ══ TABS ══════════════════════════════════════════════════════
-function switchTab(id) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === id));
-  document.querySelectorAll('.tab-content').forEach(el => el.classList.toggle('active', el.id === 'tab-' + id));
-}
-
-// ══ COPY / DOWNLOAD ═══════════════════════════════════════════
-function copyMachine() {
-  navigator.clipboard.writeText(JSON.stringify(state.machineFile, null, 2))
-    .then(()=>toast('JSON copied', 'ok'))
-    .catch(()=>{ selectText(document.getElementById('machineOutput')); toast('Select & copy', ''); });
-}
-function copyHuman() {
-  const text = document.getElementById('humanOutput').innerText;
-  navigator.clipboard.writeText(text)
-    .then(()=>toast('Instructions copied', 'ok'))
-    .catch(()=>toast('Copy failed', 'err'));
-}
-function downloadMachine() {
-  if (!state.machineFile) return;
-  download(JSON.stringify(state.machineFile, null, 2), `${slug(state.profileName)}_machine.json`, 'application/json');
-}
-function downloadHuman() {
-  if (!state.humanFile) return;
-  const text = document.getElementById('humanOutput').innerText;
-  download(text, `${slug(state.profileName)}_instructions.txt`, 'text/plain');
-}
-function exportAll() {
-  if (state.machineFile) downloadMachine();
-  setTimeout(() => { if (state.humanFile) downloadHuman(); }, 300);
-}
-function download(content, filename, type) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([content], {type}));
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast(`Downloading ${filename}`, 'ok');
-}
-function slug(str) { return (str||'voice_profile').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''); }
-function selectText(el) {
-  const r = document.createRange(); r.selectNodeContents(el);
-  const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
-}
-
-// ══ SAVE / LOAD PROFILES ══════════════════════════════════════
-function saveProfile() {
-  if (!state.machineFile) { toast('Generate a profile first', 'err'); return; }
-  const profiles = JSON.parse(localStorage.getItem('apex_profiles') || '[]');
-  const existing = profiles.findIndex(p => p.name === state.profileName);
-  const entry = {
-    name: state.profileName,
-    saved: new Date().toISOString(),
-    machine: state.machineFile,
-    analysis: state.analysis,
-    sample: document.getElementById('sampleText').value.trim().slice(0, 500)
-  };
-  if (existing >= 0) profiles[existing] = entry;
-  else profiles.unshift(entry);
-  if (profiles.length > 20) profiles.splice(20);
-  localStorage.setItem('apex_profiles', JSON.stringify(profiles));
-  loadSavedProfilesMeta();
-  showSaved();
-  toast('Profile saved', 'ok');
-}
-function loadSavedProfilesMeta() {
-  const profiles = JSON.parse(localStorage.getItem('apex_profiles') || '[]');
-  const list = document.getElementById('savedProfilesList');
-  if (!profiles.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◎</div>No saved profiles yet.</div>';
-    return;
-  }
-  list.innerHTML = profiles.map((p,i) => `
-    <div class="profile-item">
-      <div>
-        <div class="profile-item-name">${escapeHtml(p.name)}</div>
-        <div class="profile-item-meta">${new Date(p.saved).toLocaleDateString()} ${new Date(p.saved).toLocaleTimeString()}</div>
-      </div>
-      <div class="profile-item-actions">
-        <button class="btn btn-xs btn-ghost" onclick="restoreProfile(${i})">Load</button>
-        <button class="btn btn-xs btn-ghost" onclick="deleteProfile(${i})" style="color:var(--red);">✕</button>
-      </div>
-    </div>
-  `).join('');
-}
-function restoreProfile(i) {
-  const profiles = JSON.parse(localStorage.getItem('apex_profiles') || '[]');
-  const p = profiles[i];
-  if (!p) return;
-  state.machineFile = p.machine;
-  state.analysis = p.analysis;
-  state.profileName = p.name;
-  state.humanFile = buildHumanDoc(p.machine);
-  document.getElementById('sampleText').value = p.sample || '';
-  updateCharCount(document.getElementById('sampleText'));
-  goStep(4);
-  document.getElementById('generateLoading').classList.add('hidden');
-  document.getElementById('outputPanel').classList.remove('hidden');
-  renderOutput();
-  document.getElementById('exportAllBtn').disabled = false;
-  updateProfileMeta();
-  closeLoadModal();
-  toast(`Loaded: ${p.name}`, 'ok');
-}
-function deleteProfile(i) {
-  const profiles = JSON.parse(localStorage.getItem('apex_profiles') || '[]');
-  profiles.splice(i, 1);
-  localStorage.setItem('apex_profiles', JSON.stringify(profiles));
-  loadSavedProfilesMeta();
-  populateLoadModal();
-  toast('Profile deleted');
-}
-function openLoadModal() {
-  populateLoadModal();
-  document.getElementById('loadModal').classList.remove('hidden');
-}
-function closeLoadModal() { document.getElementById('loadModal').classList.add('hidden'); }
-function populateLoadModal() {
-  const profiles = JSON.parse(localStorage.getItem('apex_profiles') || '[]');
-  const list = document.getElementById('loadModalList');
-  if (!profiles.length) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◎</div>No saved profiles.</div>';
-    return;
-  }
-  list.innerHTML = profiles.map((p,i) => `
-    <div class="profile-item">
-      <div>
-        <div class="profile-item-name">${escapeHtml(p.name)}</div>
-        <div class="profile-item-meta">${new Date(p.saved).toLocaleDateString()}</div>
-      </div>
-      <div class="profile-item-actions">
-        <button class="btn btn-primary btn-xs" onclick="restoreProfile(${i})">Load</button>
-        <button class="btn btn-xs btn-ghost" onclick="deleteProfile(${i})" style="color:var(--red);">✕</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-// ══ UTILITIES ═════════════════════════════════════════════════
-function startOver() {
-  if (!confirm('Start over? This clears your current session.')) return;
-  state.analysis = null; state.machineFile = null; state.humanFile = null; state.qualityResult = null;
-  document.getElementById('sampleText').value = '';
-  document.getElementById('analysisOverride').value = '';
-  updateCharCount(document.getElementById('sampleText'));
-  goStep(1);
-  updateStatus('idle','IDLE');
-  document.getElementById('exportAllBtn').disabled = true;
-}
-function updateProfileMeta() {
-  document.getElementById('profileMeta').textContent = state.profileName ? `Profile: ${state.profileName}` : '';
-}
-function showSaved() {
-  const el = document.getElementById('savedIndicator');
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'), 2500);
-}
-let toastTimer;
-function toast(msg, type='') {
-  clearTimeout(toastTimer);
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'show' + (type ? ' '+type : '');
-  toastTimer = setTimeout(()=>{ el.className = ''; }, 2800);
-}
-// Close modals on overlay click
-document.getElementById('keyModal').addEventListener('click', function(e){ if(e.target===this) closeKeyModal(); });
-document.getElementById('loadModal').addEventListener('click', function(e){ if(e.target===this) closeLoadModal(); });
-// Enter key in API inputs
-document.getElementById('apiKeyInput').addEventListener('keydown', e => { if(e.key==='Enter') saveApiKey(); });
-document.getElementById('deepseekKeyInput').addEventListener('keydown', e => { if(e.key==='Enter') saveApiKey(); });
-document.getElementById('openaiKeyInput').addEventListener('keydown', e => { if(e.key==='Enter') saveApiKey(); });
-// Update key status on load
-const _activeKey = { anthropic: state.apiKey, deepseek: state.deepseekKey, openai: state.openaiKey }[state.provider];
-if (_activeKey) updateStatus('ready','READY');
+document.getElementById('year').textContent = new Date().getFullYear();
 </script>
 </body>
 </html>
