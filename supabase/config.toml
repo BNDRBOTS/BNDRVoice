@@ -1,0 +1,7 @@
+project_id = "sdokwqjudvxeimbzsnqc"
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.reconcile-subscriptions]
+verify_jwt = false
