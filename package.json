@@ -1,20 +1,28 @@
 {
   "name": "bndr-voiceengine",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "private": true,
-  "description": "Verification suite for the BNDR VoiceEngine static application",
+  "description": "Verification and release suite for the full-stack BNDR VoiceEngine",
   "scripts": {
     "preview": "node tests/server.mjs",
+    "build": "npm run test:contracts && npm run test:html",
+    "lint": "npm run test:html",
+    "typecheck": "npm run test:contracts",
     "test": "npm run test:contracts && npm run test:html",
     "test:browser": "node --test tests/browser.test.mjs",
     "test:contracts": "node --test tests/site.test.mjs",
-    "test:deno": "deno check --config supabase/functions/deno.json --node-modules-dir=auto supabase/functions/ai-proxy/index.ts supabase/functions/stripe-webhook/index.ts",
-    "test:html": "html-validate index.html app.html privacy.html terms.html"
+    "test:deno": "deno check --config supabase/functions/deno.json --node-modules-dir=manual supabase/functions/ai-proxy/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/account-delete/index.ts supabase/functions/billing-portal/index.ts supabase/functions/error-report/index.ts supabase/functions/reconcile-subscriptions/index.ts supabase/functions/redeem-access/index.ts",
+    "test:html": "html-validate index.html app.html privacy.html terms.html 404.html 500.html",
+    "verify": "npm run build && npm run test:browser"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
+    "@sparticuz/chromium": "149.0.0",
+    "@supabase/supabase-js": "2.110.5",
+    "deno": "2.9.4",
     "html-validate": "11.5.6",
-    "playwright": "1.61.1"
+    "playwright": "1.61.1",
+    "stripe": "14.21.0"
   },
   "engines": {
     "node": ">=22"

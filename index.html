@@ -4,11 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#090909">
-<meta name="description" content="BNDR VoiceEngine turns your writing into a deployable voice profile. Bring your own AI key; samples and keys are never stored by BNDR.">
+<meta name="description" content="BNDR VoiceEngine turns your writing into a deployable voice profile. Writing samples are processed transiently and provider credentials remain server-side.">
 <meta property="og:title" content="BNDR VoiceEngine — Your voice. Every AI.">
 <meta property="og:description" content="Paste 150–600 words. Get a forensic 16-dimension voice profile as a machine JSON file plus human instructions. Works with Anthropic, OpenAI, and DeepSeek.">
 <meta property="og:type" content="website">
-<meta name="application-version" content="3.1.0">
+<meta property="og:image" content="https://voice.bndr.bot/assets/bndr-logo.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="application-version" content="3.2.0">
+<link rel="canonical" href="/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
 <title>BNDR VoiceEngine — Your voice. Every AI.</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -138,7 +141,7 @@ h2 { font-weight:900; font-size:clamp(28px,4vw,44px); letter-spacing:-0.015em; l
 .plan li { font-size:13px; color:var(--muted); padding-left:20px; position:relative; }
 .plan li::before { content:'✓'; position:absolute; left:0; color:var(--mag); font-family:var(--font-m); font-size:11px; }
 .plan .btn { margin-top:auto; width:100%; }
-.byok-note { text-align:center; font-family:var(--font-m); font-size:11px; color:var(--dim); margin-top:22px; }
+.billing-note { text-align:center; font-family:var(--font-m); font-size:11px; color:var(--dim); margin-top:22px; }
 @media(max-width:980px){ .plans { grid-template-columns:repeat(2,1fr);} }
 @media(max-width:560px){ .plans { grid-template-columns:1fr;} }
 
@@ -231,7 +234,7 @@ footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim
       <a class="btn btn-primary btn-lg" href="app.html">Start free — no card needed</a>
       <a class="btn btn-lg" href="#how">See how it works</a>
     </div>
-    <p class="hero-note">7-day free trial · 5 analyses/day · bring your own AI key</p>
+    <p class="hero-note">7-day free trial · 5 analyses/day · secure server-side AI gateway</p>
     <div class="stats">
       <div class="stat"><b>16</b><span>voice dimensions</span></div>
       <div class="stat"><b>12</b><span>enforceable filters</span></div>
@@ -248,7 +251,7 @@ footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim
 <section id="how">
   <div class="sec-eyebrow reveal">How it works</div>
   <h2 class="reveal">From writing sample to voice blueprint in four steps</h2>
-  <p class="sec-sub reveal">No training runs and no sample storage. Anthropic and OpenAI calls go directly from your browser; DeepSeek uses an encrypted, transient relay for browser compatibility.</p>
+  <p class="sec-sub reveal">No training runs and no sample storage. Every provider call crosses an authenticated, entitlement-gated HTTPS gateway; samples are forwarded transiently and provider credentials remain server-side.</p>
   <div class="steps">
     <div class="step reveal"><div class="step-num">STEP 01</div><h3>Paste your writing</h3><p>An email, a post, a chapter — anything you actually wrote. 150–600 words is the sweet spot.</p></div>
     <div class="step reveal"><div class="step-num">STEP 02</div><h3>Get decoded</h3><p>The engine dissects tone, rhythm, structure, vocabulary, and risk posture across 16 dimensions — with scores you can inspect and correct.</p></div>
@@ -266,8 +269,8 @@ footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim
     <div class="card wide reveal"><span class="tag">ENFORCED</span><div class="card-icon">⛔</div><h3>12 hard style filters</h3><p>NO HYPE, NO HEDGING, NO PADDING, NO AI TELLS and 8 more — written into the profile as rules, not vibes.</p></div>
     <div class="card reveal"><div class="card-icon">⇄</div><h3>Machine + human outputs</h3><p>A strict JSON system prompt for AI tools, and a readable instruction doc for people. Always in sync, both exportable.</p></div>
     <div class="card reveal"><div class="card-icon">◎</div><h3>AI quality check</h3><p>A second AI pass scores the profile on 5 dimensions and warns you below 70 — before you rely on it.</p></div>
-    <div class="card reveal"><div class="card-icon">☁</div><h3>Profiles that follow you</h3><p>Save voice profiles to your account and reload them on any device. Lifetime license holders can save on-device with no account at all.</p></div>
-    <div class="card wide reveal"><span class="tag">BYOK</span><div class="card-icon">⚿</div><h3>Your key. Your data. Your browser.</h3><p>Works with Anthropic, OpenAI, and DeepSeek using your own API key. Keys live only in the current tab session and BNDR never stores your keys or sample. DeepSeek requests pass through a transient relay and are discarded after forwarding.</p></div>
+    <div class="card reveal"><div class="card-icon">☁</div><h3>Profiles that follow you</h3><p>Save voice profiles to your account and reload them on any device. Private exports can also stay on your device.</p></div>
+    <div class="card wide reveal"><span class="tag">SERVER-SECURED</span><div class="card-icon">⚿</div><h3>Credentials stay off the client.</h3><p>Works with Anthropic, OpenAI, and DeepSeek through a server-owned gateway. Provider credentials never enter browser storage, network payloads, or shipped source.</p></div>
         <div class="card wide reveal"><div class="card-icon">✆</div><h3>Mobile-first</h3><p>Every step, modal, and export works on a phone. Guided tour included — clear enough for an 8-year-old or an 80-year-old.</p></div>
   </div>
 </section>
@@ -279,8 +282,8 @@ footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim
       <h2>We don't store your writing.<br>That's the architecture.</h2>
     </div>
     <ul>
-      <li>API keys stored in session memory only — gone when the tab closes</li>
-      <li>Anthropic/OpenAI requests go direct; DeepSeek is relayed transiently over HTTPS</li>
+      <li>AI provider credentials never enter the browser</li>
+      <li>Every provider request uses an authenticated, transient HTTPS gateway</li>
       <li>Only finished profiles you choose to save are stored</li>
       <li>No ads, no trackers, no analytics scripts, no data resale</li>
     </ul>
@@ -290,7 +293,7 @@ footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim
 <section id="pricing">
   <div class="sec-eyebrow reveal">Pricing</div>
   <h2 class="reveal">Costs less than the words it saves you</h2>
-  <p class="sec-sub reveal">Comparable brand-voice tools run $29–$69 a month. VoiceEngine is $19 — because you bring your own AI key and we don't resell compute.</p>
+  <p class="sec-sub reveal">Comparable brand-voice tools run $29–$69 a month. VoiceEngine starts at $19 with server-secured AI processing included.</p>
   <div class="plans">
     <div class="plan reveal">
       <div class="plan-name">Trial</div>
@@ -318,22 +321,22 @@ footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim
       <div class="plan-name">Lifetime</div>
       <div class="plan-price" id="priceLifetime">$99<sub> once</sub></div>
       <div class="plan-note" id="noteLifetime">One payment. Yours forever.</div>
-      <ul><li>Unlimited analyses</li><li>License-key unlock via Gumroad</li><li>Works without an account</li><li>All future updates</li></ul>
+      <ul><li>Unlimited analyses</li><li>License-key unlock via Gumroad</li><li>Free account required</li><li>All future updates</li></ul>
       <button class="btn" id="lifetimeBtn" type="button">Get Lifetime</button>
     </div>
   </div>
-  <p class="byok-note">All plans are BYOK — you connect your own Anthropic, OpenAI, or DeepSeek API key. Subscriptions are handled in-app after you sign in, so your plan links to your account automatically.</p>
+  <p class="billing-note">AI processing is included. Subscriptions and verified lifetime grants attach to your signed-in account.</p>
 </section>
 
 <section id="faq">
   <div class="sec-eyebrow reveal">FAQ</div>
   <h2 class="reveal">Fair questions, straight answers</h2>
   <div class="faq" style="margin-top:34px;">
-    <details class="reveal"><summary>Do I need my own AI key?</summary><div class="a">Yes. VoiceEngine uses your own Anthropic, OpenAI, or DeepSeek account, so BNDR doesn't resell compute or persist your key. Keys take about 2 minutes to create and the app walks you through it.</div></details>
+    <details class="reveal"><summary>Do I need my own AI account?</summary><div class="a">No. VoiceEngine securely routes requests through server-managed Anthropic, OpenAI, or DeepSeek credentials.</div></details>
     <details class="reveal"><summary>Which AI tools can use my voice profile?</summary><div class="a">Any tool that accepts a system prompt or custom instructions: ChatGPT, Claude, Gemini, Copilot, API integrations, agents — the machine file is plain JSON with an embedded system prompt.</div></details>
-    <details class="reveal"><summary>Is my writing stored anywhere?</summary><div class="a">No sample is stored by BNDR. Anthropic and OpenAI requests go directly to those providers; DeepSeek requests cross an encrypted BNDR relay only long enough to forward the call. We store only finished profiles you explicitly save, and lifetime users can keep those on-device.</div></details>
-    <details class="reveal"><summary>Can I cancel my subscription?</summary><div class="a">Yes. Once the Stripe customer portal link is configured, Manage Billing opens it from the account menu. Until then, email support and BNDR will process the cancellation. Access continues through the paid period.</div></details>
-    <details class="reveal"><summary>How does the lifetime license work?</summary><div class="a">When Gumroad purchasing is enabled, you buy once and receive a license key. Paste it into "Redeem access" to unlock unlimited use on that device with no account. Existing gift and license codes can be redeemed now.</div></details>
+    <details class="reveal"><summary>Is my writing stored anywhere?</summary><div class="a">No sample is stored by BNDR. Requests cross the encrypted gateway only long enough to enforce access and forward the call. We store only account data, usage counts, reports you submit, and finished profiles you explicitly save.</div></details>
+    <details class="reveal"><summary>Can I cancel my subscription?</summary><div class="a">Yes. Manage Billing opens a secure Stripe customer-portal session from your account menu. Access continues through the paid period unless a refund or chargeback revokes it.</div></details>
+    <details class="reveal"><summary>How does the lifetime license work?</summary><div class="a">When Gumroad purchasing is enabled, you buy once and receive a license key. Redeem it while signed in to unlock the lifetime entitlement. Existing codes can be entered now.</div></details>
     <details class="reveal"><summary>Does it work on my phone?</summary><div class="a">Yes — the whole flow is mobile-first: analysis, filters, exports, saving, and the guided tour all work on any modern phone browser.</div></details>
   </div>
 </section>
@@ -348,7 +351,7 @@ footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim
 </section>
 
 <footer class="site">
-  <span class="copy">© <span id="year"></span> BNDR LLC · v3.1.0 — ALL RIGHTS RESERVED</span>
+  <span class="copy">© <span id="year"></span> BNDR LLC · v3.2.0 — ALL RIGHTS RESERVED</span>
   <div class="cols">
     <a href="app.html">App</a>
     <a href="#pricing">Pricing</a>

@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://voice.bndr.bot/sitemap.xml

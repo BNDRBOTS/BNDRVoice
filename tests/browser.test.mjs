@@ -5,12 +5,16 @@ import { join, resolve } from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
-import { chromium } from 'playwright';
+import serverlessChromium from '@sparticuz/chromium';
+import { chromium as playwrightChromium } from 'playwright';
 
 const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const BASE_URL = 'http://127.0.0.1:4173';
 const ARTIFACT_DIR = resolve(process.env.BROWSER_ARTIFACT_DIR || '/tmp/bndr-browser-artifacts');
 mkdirSync(ARTIFACT_DIR, { recursive: true });
+process.env.FONTCONFIG_PATH ||= '/tmp/fonts';
+process.env.XDG_CACHE_HOME ||= '/tmp/bndr-browser-cache';
+mkdirSync(process.env.XDG_CACHE_HOME, { recursive: true });
 
 const analysisFixture = {
   energy_level: 74,
@@ -100,12 +104,97 @@ function waitForServer(proc) {
 }
 
 async function addDeterministicEnvironment(context) {
-  // Force Local Mode for the deterministic E2E pass; production uses the
-  // vendored Supabase client tested by the static asset contracts.
+  // Deterministic in-browser Supabase contract. The real vendored client gets
+  // a separate smoke pass below; this shim exercises authenticated SaaS paths.
   await context.route('**/assets/supabase.min.js', (route) => route.fulfill({
     status: 200,
     contentType: 'text/javascript; charset=utf-8',
-    body: ''
+    body: String.raw`
+      (() => {
+        const user = { id: '11111111-1111-4111-8111-111111111111', email: 'test@example.com' };
+        const session = { access_token: 'test-access-token', user };
+        const profiles = [];
+        const entitlement = {
+          user_id: user.id, status: 'trial', product_tier: 'trial',
+          source: 'signup', daily_limit: 5,
+          valid_until: new Date(Date.now() + 6 * 86400000).toISOString(),
+          grace_until: null
+        };
+        function builder(table) {
+          const query = { action: 'select', payload: null, filters: {}, single: false };
+          const api = {
+            select() { query.action = 'select'; return api; },
+            insert(value) { query.action = 'insert'; query.payload = value; return api; },
+            upsert(value) { query.action = 'upsert'; query.payload = value; return api; },
+            update(value) { query.action = 'update'; query.payload = value; return api; },
+            delete() { query.action = 'delete'; return api; },
+            eq(key, value) { query.filters[key] = value; return api; },
+            order() { return api; },
+            limit() { return api; },
+            single() { query.single = true; return run(); },
+            maybeSingle() { query.single = true; return run(); },
+            then(resolve, reject) { return run().then(resolve, reject); },
+            catch(reject) { return run().catch(reject); }
+          };
+          async function run() {
+            if (table === 'entitlements') return { data: entitlement, error: null };
+            if (table === 'usage_tracking') return { data: { request_count: 0 }, error: null };
+            if (table === 'user_preferences') {
+              return { data: query.action === 'select' ? null : query.payload, error: null };
+            }
+            if (table === 'error_reports') return { data: query.payload, error: null };
+            if (table === 'voice_profiles') {
+              if (query.action === 'upsert' || query.action === 'insert') {
+                const existing = profiles.findIndex(item => item.name === query.payload.name);
+                const saved = {
+                  ...query.payload,
+                  id: existing >= 0 ? profiles[existing].id : crypto.randomUUID(),
+                  created_at: query.payload.created_at || new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                };
+                if (existing >= 0) profiles[existing] = saved; else profiles.push(saved);
+                return { data: saved, error: null };
+              }
+              if (query.action === 'delete') {
+                const index = profiles.findIndex(item => item.id === query.filters.id);
+                if (index >= 0) profiles.splice(index, 1);
+                return { data: null, error: null };
+              }
+              let rows = profiles.filter(item =>
+                Object.entries(query.filters).every(([key, value]) => item[key] === value)
+              );
+              return { data: query.single ? (rows[0] || null) : rows, error: null };
+            }
+            return { data: null, error: null };
+          }
+          return api;
+        }
+        window.supabase = {
+          createClient() {
+            return {
+              from: builder,
+              rpc: async () => ({ data: [{ allowed: true, current_count: 1, daily_limit: 5 }], error: null }),
+              storage: {
+                from: () => ({
+                  upload: async () => ({ data: { path: 'archived' }, error: null })
+                })
+              },
+              auth: {
+                getSession: async () => ({ data: { session }, error: null }),
+                getUser: async () => ({ data: { user }, error: null }),
+                onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+                signInWithPassword: async () => ({ data: { session, user }, error: null }),
+                signUp: async () => ({ data: { session, user }, error: null }),
+                signInWithOtp: async () => ({ error: null }),
+                resetPasswordForEmail: async () => ({ error: null }),
+                updateUser: async () => ({ data: { user }, error: null }),
+                signOut: async () => ({ error: null })
+              }
+            };
+          }
+        };
+      })();
+    `
   }));
   await context.route('https://fonts.googleapis.com/**', (route) => route.fulfill({
     status: 200,
@@ -116,15 +205,21 @@ async function addDeterministicEnvironment(context) {
   await context.addInitScript(({ analysis, profile, quality }) => {
     localStorage.setItem('bndr_consent', new Date().toISOString());
     localStorage.setItem('bndr_tour_done', '1');
+    window.__bndrAiRequests = [];
     const nativeFetch = window.fetch.bind(window);
     window.fetch = async (input, init = {}) => {
       const url = String(input);
-      if (url === 'https://api.anthropic.com/v1/messages') {
+      if (url.endsWith('/functions/v1/ai-proxy')) {
         const request = JSON.parse(String(init.body || '{}'));
+        window.__bndrAiRequests.push(request);
         let fixture = analysis;
-        if (String(request.system).includes('voice profile compiler')) fixture = profile;
-        if (String(request.system).includes('quality checker')) fixture = quality;
-        return new Response(JSON.stringify({ content: [{ type: 'text', text: JSON.stringify(fixture) }] }), {
+        if (request.operation === 'compile') fixture = profile;
+        if (request.operation === 'quality') fixture = quality;
+        return new Response(JSON.stringify({
+          content: JSON.stringify(fixture),
+          usage: { current_count: 1, daily_limit: 5, entitlement_status: 'trial' },
+          correlation_id: '22222222-2222-4222-8222-222222222222'
+        }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' }
         });
@@ -156,10 +251,12 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
 
   let browser;
   try {
-    browser = await chromium.launch({
-      executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH,
+    const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+      || await serverlessChromium.executablePath();
+    browser = await playwrightChromium.launch({
+      executablePath,
       headless: true,
-      args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage']
+      args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-unsafe-swiftshader']
     });
 
     const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
@@ -189,10 +286,10 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
 
     const healthResponse = await desktop.request.get(`${BASE_URL}/health`);
     assert.equal(healthResponse.status(), 200);
-    assert.deepEqual(await healthResponse.json(), { status: 'ok', release: '3.1.0' });
+    assert.deepEqual(await healthResponse.json(), { status: 'ok', release: '3.2.0' });
     const versionResponse = await desktop.request.get(`${BASE_URL}/version.json`);
     assert.equal(versionResponse.status(), 200);
-    assert.equal(versionResponse.headers()['x-bndr-release'], '3.1.0');
+    assert.equal(versionResponse.headers()['x-bndr-release'], '3.2.0');
     assert.equal((await desktop.request.get(`${BASE_URL}/definitely-missing.js`)).status(), 404);
 
     const homeResponse = await page.goto(BASE_URL, { waitUntil: 'networkidle' });
@@ -201,7 +298,7 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
     assert.match(await page.title(), /BNDR VoiceEngine/);
     assert.match(await page.locator('h1').innerText(), /Your voice\.\s*Every AI\./);
     assert.equal(await page.locator('.brand-logo').evaluate((img) => img.naturalWidth > 0), true);
-    assert.match(await page.locator('footer').innerText(), /v3\.1\.0/);
+    assert.match(await page.locator('footer').innerText(), /v3\.2\.0/);
     assert.equal((await page.locator('#lifetimeBtn').textContent())?.trim(), 'Redeem a Code');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
     await page.waitForTimeout(1600);
@@ -225,7 +322,7 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
     );
     for (const selector of ['#how', '#features', '#pricing', '#faq']) {
       await page.locator(selector).scrollIntoViewIfNeeded();
-      await page.waitForTimeout(150);
+      await page.waitForTimeout(600);
       assert.equal(await page.locator(`${selector} .reveal`).first().evaluate((node) => Number(getComputedStyle(node).opacity) > 0), true);
     }
     await page.locator('body').press('Home');
@@ -235,7 +332,7 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
     await page.getByRole('link', { name: /Start free/ }).click();
     await page.locator('#view-1').waitFor();
     assert.equal(await page.locator('.brand-logo--app').evaluate((img) => img.naturalWidth > 0), true);
-    assert.match(await page.locator('.app-footer').innerText(), /v3\.1\.0/i);
+    assert.match(await page.locator('.app-footer').innerText(), /v3\.2\.0/i);
     assert.equal(await page.locator('.step-item[data-step="2"]').isDisabled(), true);
     const appA11y = await new AxeBuilder({ page }).analyze();
     assert.deepEqual(
@@ -247,12 +344,16 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
     await page.getByRole('button', { name: 'Load Example' }).click();
     assert.ok((await page.locator('#sampleText').inputValue()).split(/\s+/).length >= 50);
     await page.locator('#tourKeyBtn').click();
-    await page.locator('#apiKeyInput').fill('sk-test-browser-verification');
-    await page.getByRole('button', { name: /Save & Continue/ }).click();
+    await page.getByRole('button', { name: /OpenAI/ }).click();
+    await page.getByRole('button', { name: /Use This Provider/ }).click();
     await page.locator('#analyzeBtn').click();
     await page.locator('#analysisOutput:not(.hidden)').waitFor();
     assert.match(await page.locator('#analysisSummary').innerText(), /Sharp, specific/);
     assert.equal(await page.evaluate(() => window.__bndrXss === 1), false);
+    assert.equal(await page.evaluate(() => {
+      const request = window.__bndrAiRequests[0];
+      return request.provider === 'openai' && !('key' in request) && !('model' in request);
+    }), true);
 
     await page.getByRole('button', { name: /Configure Profile/ }).click();
     await page.locator('#profileName').fill('Sharp Test Voice');

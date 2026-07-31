@@ -17,7 +17,7 @@ const headers = {
   'Cache-Control': 'no-cache',
   'Content-Security-Policy': "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://sdokwqjudvxeimbzsnqc.supabase.co https://api.anthropic.com https://api.openai.com https://api.gumroad.com",
   'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'X-BNDR-Release': '3.1.0',
+  'X-BNDR-Release': '3.2.0',
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY'
 };
@@ -26,7 +26,7 @@ createServer((request, response) => {
   const url = new URL(request.url || '/', `http://${request.headers.host || 'localhost'}`);
   if (url.pathname === '/health') {
     response.writeHead(200, { ...headers, 'Content-Type': 'application/json; charset=utf-8' });
-    response.end('{"status":"ok","release":"3.1.0"}');
+    response.end('{"status":"ok","release":"3.2.0"}');
     return;
   }
 

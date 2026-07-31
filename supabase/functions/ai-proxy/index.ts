@@ -1,150 +1,226 @@
-// ══════════════════════════════════════════════════════════════
-// BNDR VoiceEngine — AI Proxy Edge Function
-// Routes DeepSeek calls server-side to bypass browser CORS.
-// The user's API key is forwarded over HTTPS and never stored.
-//
-// Deploy:
-//   supabase functions deploy ai-proxy --no-verify-jwt
-//   (JWT is verified manually below for finer error control)
-//
-// Required env vars (set in Supabase Dashboard → Edge Functions):
-//   SUPABASE_URL        — auto-set by Supabase runtime
-//   SUPABASE_ANON_KEY   — auto-set by Supabase runtime
-// ══════════════════════════════════════════════════════════════
+// Authenticated, entitlement-gated AI gateway. Provider credentials and model
+// selection are server-owned and never enter the browser.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.110.5'
+import { buildForensicRequest, type VoiceOperation } from './forensic.ts'
+import { serverConfigured, userClient } from '../_shared/supabase.ts'
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+type Provider = 'anthropic' | 'deepseek' | 'openai'
+type Message = { role: 'system' | 'user' | 'assistant'; content: string }
+type GatewayBody = {
+  provider: Provider
+  max_tokens?: number
+  operation: VoiceOperation
+  payload: Record<string, unknown>
 }
 
-interface ProxyRequestBody {
-  provider: 'deepseek'
-  key: string
-  model: string
-  max_tokens: number
-  messages: Array<{ role: string; content: string }>
-  thinking?: { type: 'enabled' | 'disabled' }
-  response_format?: { type: 'json_object' }
+const DEFAULT_MODELS: Record<Provider, string> = {
+  anthropic: 'claude-sonnet-5',
+  deepseek: 'deepseek-v4-flash',
+  openai: 'gpt-5.6-luna',
+}
+const MODEL_ENV: Record<Provider, string> = {
+  anthropic: 'ANTHROPIC_MODEL',
+  deepseek: 'DEEPSEEK_MODEL',
+  openai: 'OPENAI_MODEL',
+}
+const KEY_ENV: Record<Provider, string> = {
+  anthropic: 'ANTHROPIC_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
+  openai: 'OPENAI_API_KEY',
+}
+const UPSTREAM: Record<Provider, string> = {
+  anthropic: 'https://api.anthropic.com/v1/messages',
+  deepseek: 'https://api.deepseek.com/chat/completions',
+  openai: 'https://api.openai.com/v1/chat/completions',
+}
+const MAX_BODY_BYTES = 750_000
+const MAX_MESSAGE_BYTES = 200_000
+
+function configuredOrigins(): Set<string> {
+  return new Set(
+    (Deno.env.get('ALLOWED_ORIGINS') || '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean),
+  )
 }
 
-const ALLOWED_MODELS = new Set(['deepseek-v4-flash', 'deepseek-v4-pro'])
-const ALLOWED_ROLES = new Set(['system', 'user', 'assistant'])
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') || ''
+  const allowed = configuredOrigins()
+  const allowOrigin = allowed.has(origin) ? origin : [...allowed][0] || 'https://voice.bndr.bot'
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+    'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
+  }
+}
+
+function json(req: Request, body: unknown, status = 200): Response {
+  return Response.json(body, {
+    status,
+    headers: { ...corsHeaders(req), 'Cache-Control': 'no-store' },
+  })
+}
+
+function error(req: Request, code: string, message: string, status: number, correlationId: string): Response {
+  return json(req, { error: { code, message, correlation_id: correlationId } }, status)
+}
+
+function validateBody(value: unknown): GatewayBody | null {
+  if (!value || typeof value !== 'object') return null
+  const body = value as Partial<GatewayBody>
+  if (!body.provider || !DEFAULT_MODELS[body.provider]) return null
+  if (!['analyze', 'compile', 'quality'].includes(String(body.operation))) return null
+  if (!body.payload || typeof body.payload !== 'object' || Array.isArray(body.payload)) return null
+  if (JSON.stringify(body.payload).length > MAX_MESSAGE_BYTES) return null
+  return body as GatewayBody
+}
+
+async function callProvider(
+  body: GatewayBody,
+  prompt: { system: string; user: string; maxTokens: number },
+): Promise<{ response: Response; extract: (data: any) => string }> {
+  const maxTokens = Math.min(Math.max(prompt.maxTokens, 100), 8000)
+  const messages: Message[] = [{ role: 'user', content: prompt.user }]
+  const key = Deno.env.get(KEY_ENV[body.provider]) || ''
+  const model = Deno.env.get(MODEL_ENV[body.provider]) || DEFAULT_MODELS[body.provider]
+  if (!key) throw new Error('PROVIDER_NOT_CONFIGURED')
+
+  if (body.provider === 'anthropic') {
+    return {
+      response: await fetch(UPSTREAM.anthropic, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({ model, max_tokens: maxTokens, system: prompt.system, messages }),
+        signal: AbortSignal.timeout(120_000),
+      }),
+      extract: data => data?.content?.find((part: any) => part?.type === 'text')?.text || '',
+    }
+  }
+
+  const common = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    signal: AbortSignal.timeout(120_000),
+  } as const
+  const providerPayload = body.provider === 'openai'
+    ? {
+        model,
+        max_completion_tokens: maxTokens,
+        reasoning_effort: 'low',
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: prompt.system }, ...messages],
+      }
+    : {
+        model,
+        max_tokens: maxTokens,
+        stream: false,
+        thinking: { type: 'enabled' },
+        response_format: { type: 'json_object' },
+        messages: [{ role: 'system', content: prompt.system }, ...messages],
+      }
+
+  return {
+    response: await fetch(UPSTREAM[body.provider], {
+      ...common,
+      body: JSON.stringify(providerPayload),
+    }),
+    extract: data => data?.choices?.[0]?.message?.content || '',
+  }
+}
 
 Deno.serve(async (req: Request): Promise<Response> => {
-  // Preflight
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: CORS_HEADERS })
-  }
-
-  if (req.method !== 'POST') {
-    return jsonError('Method not allowed', 405)
-  }
+  const correlationId = crypto.randomUUID()
+  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(req) })
+  if (req.method !== 'POST') return error(req, 'VE-METHOD', 'Method not allowed', 405, correlationId)
 
   const declaredSize = Number(req.headers.get('content-length') || 0)
-  if (declaredSize > 750_000) {
-    return jsonError('Request body too large', 413)
+  if (declaredSize > MAX_BODY_BYTES) {
+    return error(req, 'VE-BODY_SIZE', 'Request body too large', 413, correlationId)
   }
 
-  // ── 1. Authenticate the caller ──────────────────────────────
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return jsonError('Missing or malformed Authorization header', 401)
+  const authHeader = req.headers.get('authorization') || ''
+  if (!authHeader.startsWith('Bearer ')) {
+    return error(req, 'VE-AUTH_REQUIRED', 'Sign in required', 401, correlationId)
+  }
+  if (!serverConfigured()) {
+    return error(req, 'VE-SERVER_CONFIG', 'AI gateway is not configured', 503, correlationId)
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    { global: { headers: { Authorization: authHeader } } }
-  )
-
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const client = userClient(authHeader)
+  const { data: { user }, error: authError } = await client.auth.getUser()
   if (authError || !user) {
-    return jsonError('Unauthorized — valid Supabase session required', 401)
+    return error(req, 'VE-AUTH_INVALID', 'Session expired; sign in again', 401, correlationId)
   }
 
-  // ── 2. Parse + validate request body ────────────────────────
-  let body: ProxyRequestBody
+  let parsed: unknown
   try {
-    body = await req.json()
+    parsed = await req.json()
   } catch {
-    return jsonError('Invalid JSON body', 400)
+    return error(req, 'VE-BODY_JSON', 'Invalid JSON body', 400, correlationId)
+  }
+  const body = validateBody(parsed)
+  if (!body) return error(req, 'VE-BODY_INVALID', 'Invalid AI request', 400, correlationId)
+  if (!Deno.env.get(KEY_ENV[body.provider])) {
+    return error(req, 'VE-PROVIDER_CONFIG', 'Selected AI provider is not configured', 503, correlationId)
   }
 
-  const { provider, key, model, max_tokens, messages, thinking, response_format } = body
-
-  if (provider !== 'deepseek') {
-    return jsonError(`Unsupported provider: ${provider}. Only 'deepseek' is proxied.`, 400)
+  const { data: entitlement, error: gateError } = await client
+    .rpc('check_and_increment_usage', { p_user_id: user.id })
+  const gate = Array.isArray(entitlement) ? entitlement[0] : entitlement
+  if (gateError) {
+    return error(req, 'VE-ENTITLEMENT', 'Could not verify plan access', 503, correlationId)
   }
-  if (!key || typeof key !== 'string' || key.length < 8) {
-    return jsonError('Missing or invalid API key', 400)
-  }
-  if (!ALLOWED_MODELS.has(model)) {
-    return jsonError('Unsupported DeepSeek model', 400)
-  }
-  if (!Array.isArray(messages) || messages.length === 0 || messages.length > 8) {
-    return jsonError('messages must be a non-empty array', 400)
-  }
-  if (messages.some(message =>
-    !message || !ALLOWED_ROLES.has(message.role) ||
-    typeof message.content !== 'string' || !message.content.trim() ||
-    message.content.length > 200_000
-  )) {
-    return jsonError('messages contain an invalid role or content', 400)
-  }
-  const safeMaxTokens = Math.min(Math.max(Number(max_tokens) || 2000, 100), 8000)
-
-  // ── 3. Forward to DeepSeek ───────────────────────────────────
-  let upstream: Response
-  try {
-    upstream = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
+  if (!gate?.allowed) {
+    return json(req, {
+      error: {
+        code: 'VE-LIMIT',
+        message: 'Daily analysis limit reached',
+        correlation_id: correlationId,
       },
-      body: JSON.stringify({
-        model,
-        max_tokens: safeMaxTokens,
-        stream: false,
-        messages,
-        thinking: thinking?.type ? { type: thinking.type } : { type: 'enabled' },
-        response_format: response_format?.type === 'json_object'
-          ? { type: 'json_object' }
-          : undefined,
-      }),
-      signal: AbortSignal.timeout(120_000),
+      entitlement: gate,
+    }, 402)
+  }
+
+  try {
+    const prompt = buildForensicRequest(body.operation, body.payload)
+    const { response, extract } = await callProvider(body, prompt)
+    const data = await response.json().catch(() => null)
+    if (!response.ok) {
+      const message = String(data?.error?.message || data?.error || `Provider error ${response.status}`)
+        .slice(0, 500)
+      return error(req, 'VE-PROVIDER', message, response.status, correlationId)
+    }
+    const content = extract(data)
+    if (!content) return error(req, 'VE-PROVIDER_SHAPE', 'Provider returned no output', 502, correlationId)
+    return json(req, {
+      content,
+      usage: {
+        current_count: gate.current_count,
+        daily_limit: gate.daily_limit,
+        entitlement_status: gate.entitlement_status,
+      },
+      correlation_id: correlationId,
     })
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e)
-    return jsonError(`DeepSeek upstream unreachable: ${msg}`, 502)
+  } catch (caught) {
+    const message = caught instanceof Error ? caught.message : 'Provider unreachable'
+    if (message === 'PROVIDER_NOT_CONFIGURED') {
+      return error(req, 'VE-PROVIDER_CONFIG', 'Selected AI provider is not configured', 503, correlationId)
+    }
+    const timedOut = /timeout|timed out|abort/i.test(message)
+    return error(
+      req,
+      timedOut ? 'VE-TIMEOUT' : 'VE-UPSTREAM',
+      timedOut ? 'AI request timed out; try again' : 'AI provider is temporarily unreachable',
+      timedOut ? 504 : 502,
+      correlationId,
+    )
   }
-
-  // ── 4. Return upstream response verbatim ────────────────────
-  const upstreamData = await upstream.json().catch(() => null)
-
-  if (!upstream.ok) {
-    const errMsg = upstreamData?.error?.message
-      || upstreamData?.error
-      || `DeepSeek API error ${upstream.status}`
-    return jsonError(errMsg, upstream.status)
-  }
-
-  if (!upstreamData || !Array.isArray(upstreamData.choices)) {
-    return jsonError('DeepSeek returned an invalid response', 502)
-  }
-
-  return new Response(JSON.stringify(upstreamData), {
-    status: 200,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-  })
 })
-
-function jsonError(message: string, status: number): Response {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
-  })
-}

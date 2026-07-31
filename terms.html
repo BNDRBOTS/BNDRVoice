@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#090909">
-<meta name="application-version" content="3.1.0">
-<meta name="description" content="BNDR VoiceEngine terms of service — plans, licenses, BYOK responsibilities, and fair-use rules.">
+<meta name="application-version" content="3.2.0">
+<link rel="canonical" href="/terms">
+<meta name="description" content="BNDR VoiceEngine terms of service — plans, licenses, AI processing, and fair-use rules.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
 <title>Terms of Service · BNDR VoiceEngine</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -45,18 +46,18 @@ footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a
 <main>
   <div class="eyebrow">Legal</div>
   <h1>Terms of Service</h1>
-  <div class="updated">LAST UPDATED: JULY 14, 2026</div>
+  <div class="updated">LAST UPDATED: JULY 30, 2026</div>
 
   <p>These terms govern your use of BNDR VoiceEngine (“the Service”), operated by BNDR LLC (“we”, “us”). By using the Service you agree to them. They're written to be readable — if anything is unclear, ask us before relying on it.</p>
 
   <h2>1. What the Service is</h2>
-  <p>VoiceEngine analyzes writing samples you provide and generates voice-profile files (a machine-readable JSON file and a human-readable instruction document). It is a <strong>bring-your-own-key (BYOK)</strong> tool: analysis and generation run against an AI provider account (Anthropic, OpenAI, or DeepSeek) that <strong>you</strong> own and control.</p>
+  <p>VoiceEngine analyzes writing samples you provide and generates voice-profile files (a machine-readable JSON file and a human-readable instruction document). Analysis and generation run through BNDR's authenticated server-side gateway using Anthropic, OpenAI, or DeepSeek.</p>
 
   <div class="box">
-    <strong>BYOK means two things you're responsible for:</strong>
+    <strong>AI processing:</strong>
     <ul style="margin-bottom:0;">
-      <li>Charges billed by your AI provider for the requests the Service makes on your behalf are yours. Typical profile runs cost a few cents, but pricing is set by your provider, not us.</li>
-      <li>Keeping your API keys valid and secure. The Service holds them only in your browser tab and cannot recover them for you.</li>
+      <li>Provider credentials are managed in the server environment and never delivered to your browser.</li>
+      <li>Your submitted writing is processed transiently by the selected provider under its terms and is not retained by BNDR as a writing sample.</li>
     </ul>
   </div>
 
@@ -64,7 +65,7 @@ footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a
   <ul>
     <li><strong>Free trial</strong> — 7 days, up to 5 analyses per day, no payment method required.</li>
     <li><strong>Pro subscriptions</strong> (monthly or annual) — billed through Stripe, up to 50 analyses per day. They renew automatically until canceled.</li>
-    <li><strong>Lifetime license</strong> — when offered, a one-time purchase through Gumroad that unlocks unlimited use on devices where you redeem your license key. “Lifetime” means the lifetime of the Service, including updates while it operates.</li>
+    <li><strong>Lifetime license</strong> — when offered, a one-time purchase through Gumroad that creates an account-owned lifetime entitlement after server verification. “Lifetime” means the lifetime of the Service, including updates while it operates.</li>
     <li><strong>Gift/VIP codes</strong> — we may issue codes granting free access. They are non-transferable, may be limited or revoked in cases of abuse, and carry no cash value.</li>
   </ul>
 
@@ -75,7 +76,7 @@ footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a
   <ul>
     <li>You keep all rights to the writing you submit and to the voice profiles the Service generates for you. Use them anywhere, commercially or otherwise.</li>
     <li>You confirm you have the right to analyze the writing you submit. Don't submit someone else's writing to imitate them without their permission.</li>
-    <li>Your writing samples are processed by your AI provider under your account and their terms. Anthropic and OpenAI calls go directly from your browser; DeepSeek calls use BNDR's authenticated, transient Supabase relay for browser compatibility. BNDR does not store the relayed request body.</li>
+    <li>Your writing samples are processed by the selected AI provider under its terms. Calls use BNDR's authenticated, transient Supabase gateway for entitlement enforcement. BNDR does not store the request body.</li>
   </ul>
 
   <h2>5. Acceptable use</h2>
@@ -85,7 +86,7 @@ footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a
   <p>Voice profiles are generated by AI models. They are usually accurate and useful, but AI output can contain mistakes. Review profiles before relying on them; you are responsible for how you use generated content. The Service provides tools, not professional advice.</p>
 
   <h2>7. Availability and changes</h2>
-  <p>We aim to keep the Service available and improving, and it also has an offline-tolerant Local Mode, but we can't promise uninterrupted operation. We may modify features over time; we won't materially reduce what a paid plan includes during a period you've already paid for. If we ever discontinue the Service entirely, files you've already exported remain yours and keep working — they're plain text.</p>
+  <p>We aim to keep the Service available and improving, but we can't promise uninterrupted operation. During a cloud interruption, existing on-device exports remain readable while sign-in and AI processing pause. We may modify features over time; we won't materially reduce what a paid plan includes during a period you've already paid for. If we discontinue the Service, files you've already exported remain yours and keep working — they're plain text.</p>
 
   <h2>8. Warranty and liability</h2>
   <p>The Service is provided “as is” without warranties of any kind, express or implied. To the maximum extent permitted by law, BNDR LLC's total liability for any claim related to the Service is limited to the amount you paid us in the 12 months before the claim. Nothing in these terms limits liability that cannot lawfully be limited.</p>

@@ -1,0 +1,22 @@
+project_id = "sdokwqjudvxeimbzsnqc"
+
+[functions.ai-proxy]
+verify_jwt = false
+
+[functions.account-delete]
+verify_jwt = false
+
+[functions.billing-portal]
+verify_jwt = false
+
+[functions.error-report]
+verify_jwt = false
+
+[functions.redeem-access]
+verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
+
+[functions.reconcile-subscriptions]
+verify_jwt = false

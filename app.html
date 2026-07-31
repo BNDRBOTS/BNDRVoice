@@ -8,7 +8,9 @@
 <meta property="og:title" content="BNDR VoiceEngine — Your voice. Every AI.">
 <meta property="og:description" content="Forensic voice capture and profile generation. Paste your writing, get a deterministic voice blueprint any AI can follow.">
 <meta property="og:type" content="website">
-<meta name="application-version" content="3.1.0">
+<meta property="og:image" content="https://voice.bndr.bot/assets/bndr-logo.png">
+<meta name="application-version" content="3.2.0">
+<link rel="canonical" href="/app">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
 <title>VoiceEngine App · BNDR</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -595,39 +597,27 @@ textarea, input, select { font-family:var(--font-d); }
   </div>
 </div>
 
-<!-- ══ API KEY MODAL ══════════════════════════════════════════ -->
+<!-- ══ AI PROVIDER MODAL ══════════════════════════════════════ -->
 <div class="modal-overlay hidden" id="keyModal">
   <div class="modal">
     <div class="section-eyebrow">AI Provider</div>
-    <div class="modal-title" style="margin-bottom:16px;">Configure Keys</div>
+    <div class="modal-title" style="margin-bottom:16px;">Choose the analysis engine</div>
     <div class="provider-tabs">
       <button type="button" class="provider-tab active" id="provTabAnthropic" onclick="switchProviderTab('anthropic')">◈ Anthropic</button>
       <button type="button" class="provider-tab" id="provTabDeepseek" onclick="switchProviderTab('deepseek')">◈ DeepSeek</button>
       <button type="button" class="provider-tab" id="provTabOpenai" onclick="switchProviderTab('openai')">◈ OpenAI</button>
     </div>
-    <!-- Anthropic panel -->
     <div id="provPanelAnthropic">
-      <div class="modal-sub">The Voice Engine calls Claude Sonnet 5 directly from your browser. Your key is stored in session memory only — it clears when you close this tab.</div>
-      <label class="modal-label" for="apiKeyInput">Anthropic API Key</label>
-      <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="new-password">
-      <div class="modal-note">Get your key at console.anthropic.com → API Keys. Usage is billed to your Anthropic account.</div>
+      <div class="modal-sub">Claude runs through BNDR's authenticated Supabase gateway. Provider credentials remain server-side and are never sent to the browser.</div>
     </div>
-    <!-- DeepSeek panel -->
     <div id="provPanelDeepseek" class="hidden">
-      <div class="modal-sub">Connects to DeepSeek V4 Flash via BNDR's authenticated HTTPS relay for browser compatibility. The request is forwarded transiently and is not stored. DeepSeek requires a signed-in account.</div>
-      <label class="modal-label" for="deepseekKeyInput">DeepSeek API Key</label>
-      <input type="password" class="modal-input" id="deepseekKeyInput" placeholder="sk-…" autocomplete="new-password">
-      <div class="modal-note">Get your key at platform.deepseek.com → API Keys. Calls are routed through the BNDR relay; your provider usage is billed to you.</div>
+      <div class="modal-sub">DeepSeek runs through BNDR's authenticated Supabase gateway. Provider credentials remain server-side and are never sent to the browser.</div>
     </div>
-    <!-- OpenAI panel -->
     <div id="provPanelOpenai" class="hidden">
-      <div class="modal-sub">Connects to GPT-5.6 Luna via OpenAI's Chat Completions API. Stored in session memory only — clears when you close this tab.</div>
-      <label class="modal-label" for="openaiKeyInput">OpenAI API Key</label>
-      <input type="password" class="modal-input" id="openaiKeyInput" placeholder="sk-…" autocomplete="new-password">
-      <div class="modal-note">Get your key at platform.openai.com → API Keys. Usage is billed to your OpenAI account.</div>
+      <div class="modal-sub">OpenAI runs through BNDR's authenticated Supabase gateway. Provider credentials remain server-side and are never sent to the browser.</div>
     </div>
     <div class="modal-actions" style="margin-top:20px;">
-      <button type="button" class="btn btn-primary" onclick="saveApiKey()">Save &amp; Continue</button>
+      <button type="button" class="btn btn-primary" onclick="saveProvider()">Use This Provider</button>
       <button type="button" class="btn btn-ghost" onclick="closeKeyModal()">Cancel</button>
     </div>
   </div>
@@ -675,7 +665,7 @@ textarea, input, select { font-family:var(--font-d); }
         <span class="plan-features">
           <span>Unlimited analyses</span>
           <span>License-key unlock</span>
-          <span>Works without an account</span>
+          <span>Requires a free account</span>
           <span>All future updates</span>
         </span>
       </button>
@@ -693,13 +683,13 @@ textarea, input, select { font-family:var(--font-d); }
 <div class="modal-overlay hidden" id="passModal">
   <div class="modal" style="max-width:440px;">
     <div class="modal-title">Redeem Access</div>
-    <div class="modal-sub">Got a gift code from BNDR, or a license key from your Gumroad purchase? Paste it below — it unlocks full, unlimited use on this device.</div>
+    <div class="modal-sub">Got a gift code from BNDR, or a license key from your Gumroad purchase? Sign in and paste it below to add lifetime access to your account.</div>
     <input type="text" class="modal-input" id="passInput" placeholder="Gift code or license key" autocomplete="off" spellcheck="false">
     <div class="modal-actions">
       <button type="button" class="btn btn-primary" id="passRedeemBtn" onclick="redeemAccess()">Unlock</button>
       <button type="button" class="btn btn-ghost" onclick="closePassModal()">Cancel</button>
     </div>
-    <p style="font-size:11px;color:var(--dim);margin-top:14px;font-family:var(--font-m);line-height:1.6;">Gift codes are checked on your device. License keys are verified with Gumroad. No account needed — your profiles save to this device instead.</p>
+    <p style="font-size:11px;color:var(--dim);margin-top:14px;font-family:var(--font-m);line-height:1.6;">Codes are verified by BNDR's authenticated server. Gift-code hashes and Gumroad credentials are never exposed in this page.</p>
   </div>
 </div>
 
@@ -711,8 +701,9 @@ textarea, input, select { font-family:var(--font-d); }
     <p class="tour-text" id="tourText"></p>
     <div class="tour-dots" id="tourDots"></div>
     <div class="tour-actions">
-      <button type="button" class="btn btn-ghost btn-sm" onclick="endTour()">Skip</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="endTour('skipped')">Skip</button>
       <div style="display:flex;gap:8px;">
+        <button type="button" class="btn btn-ghost btn-sm hidden" id="tourSupportBtn" onclick="emailTourFeedback()">Email feedback</button>
         <button type="button" class="btn btn-ghost btn-sm" id="tourBackBtn" onclick="tourPrev()">← Back</button>
         <button type="button" class="btn btn-primary btn-sm" id="tourNextBtn" onclick="tourNext()">Next →</button>
       </div>
@@ -721,7 +712,7 @@ textarea, input, select { font-family:var(--font-d); }
 </div>
 
 <div id="cookieBanner" class="hidden" role="dialog" aria-live="polite" aria-label="Privacy notice">
-  <p><strong>Quick note:</strong> this app saves your settings and voice profiles on your device so it can work. No ads. No tracking. No selling your data. <a href="privacy.html">How we handle privacy →</a></p>
+  <p><strong>Quick note:</strong> this app stores account data and saved profiles in Supabase; offline recovery profiles can remain on this device. No ads. No tracking. No selling your data. <a href="privacy.html">How we handle privacy →</a></p>
   <button type="button" class="btn btn-primary btn-sm" onclick="acceptCookies()">Got it</button>
 </div>
 
@@ -742,8 +733,8 @@ textarea, input, select { font-family:var(--font-d); }
       </div>
       <!-- Usage counter (shown when logged in) -->
       <div class="usage-pill hidden" id="usagePill">–/– left</div>
-      <!-- AI Key button -->
-      <button type="button" class="btn-key" id="tourKeyBtn" onclick="openKeyModal()" title="Configure AI Key">⌘ KEY</button>
+      <!-- AI provider button -->
+      <button type="button" class="btn-key" id="tourKeyBtn" onclick="openKeyModal()" title="Choose AI provider">◈ AI</button>
       <!-- Help / guided tour -->
       <button type="button" class="btn-key btn-help" onclick="startTour()" title="Show me around" aria-label="Open the guided tour">?</button>
       <!-- Sign In (shown when logged out) -->
@@ -1063,7 +1054,7 @@ textarea, input, select { font-family:var(--font-d); }
 
 <!-- ══ APP FOOTER ═════════════════════════════════════════════ -->
 <footer class="app-footer">
-  <span>© BNDR · v3.1.0 · ALL RIGHTS RESERVED</span>
+  <span>© BNDR · v3.2.0 · ALL RIGHTS RESERVED</span>
   <span class="sep">|</span>
   <a href="index.html">HOME</a>
   <span class="sep">|</span>
@@ -1077,7 +1068,7 @@ textarea, input, select { font-family:var(--font-d); }
 <!-- ══ BOTTOM BAR ═════════════════════════════════════════════ -->
 <div class="bottom-bar">
   <div class="bottom-bar-left">
-    <button type="button" class="btn btn-ghost btn-sm" onclick="openKeyModal()">⌘ AI Key</button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="openKeyModal()">◈ AI</button>
     <button type="button" class="btn btn-ghost btn-sm" onclick="openLoadModal()">↑ Load Profile</button>
     <span class="saved-indicator" id="savedIndicator">✓ Saved</span>
   </div>
@@ -1108,13 +1099,7 @@ const CFG          = window.BNDR_CONFIG || {};
 const SUPABASE_URL = CFG.SUPABASE_URL || '';
 const SUPABASE_ANON = CFG.SUPABASE_ANON_KEY || '';
 const STRIPE   = Object.assign({ monthly:'', annual:'', portal:'' }, CFG.STRIPE || {});
-const GUMROAD  = Object.assign({ buyUrl:'', productId:'' }, CFG.GUMROAD || {});
-const AI_MODELS = Object.assign({
-  anthropic: 'claude-sonnet-5',
-  openai:    'gpt-5.6-luna',
-  deepseek:  'deepseek-v4-flash'
-}, CFG.AI_MODELS || {});
-const GIFT_HASHES = Array.isArray(CFG.GIFT_CODE_HASHES) ? CFG.GIFT_CODE_HASHES : [];
+const GUMROAD  = Object.assign({ buyUrl:'' }, CFG.GUMROAD || {});
 
 function _isHttpsUrl(value) {
   try { return new URL(String(value || '')).protocol === 'https:'; }
@@ -1123,8 +1108,8 @@ function _isHttpsUrl(value) {
 
 // ══ SUPABASE (guarded init — never hard-fails) ════════════════
 // If the Supabase CDN script or config is unavailable, the app
-// degrades to Local Mode: everything runs on-device, cloud calls
-// return friendly errors instead of crashing the page.
+// degrades safely when cloud configuration is unavailable: existing local
+// profiles remain readable, while auth and AI actions return friendly errors.
 let CLOUD_OK = false;
 let sb;
 try {
@@ -1136,7 +1121,7 @@ try {
 if (!CLOUD_OK) sb = _offlineStub();
 
 function _offlineStub() {
-  const err = { message: 'Cloud is unreachable right now — you are in Local Mode. Your work stays on this device.' };
+  const err = { message: 'Cloud is unreachable. Saved on-device profiles remain available; sign-in and AI requests are paused.' };
   const result = () => Promise.resolve({ data: null, error: err });
   const builder = () => {
     const b = {};
@@ -1150,6 +1135,7 @@ function _offlineStub() {
   return {
     from: () => builder(),
     rpc:  result,
+    storage: { from: () => ({ upload: result }) },
     auth: {
       getSession: async () => ({ data: { session: null } }),
       getUser: async () => ({ data: { user: null }, error: err }),
@@ -1157,35 +1143,24 @@ function _offlineStub() {
       signInWithPassword: async () => ({ error: err }),
       signUp: async () => ({ error: err }),
       signInWithOtp: async () => ({ error: err }),
+      resetPasswordForEmail: async () => ({ error: err }),
+      updateUser: async () => ({ error: err }),
       signOut: async () => ({ error: null })
     }
   };
 }
 
-// Supabase Edge Function URL for Stripe webhook (already deployed):
-// https://sdokwqjudvxeimbzsnqc.supabase.co/functions/v1/stripe-webhook
-// Required secrets to add in Supabase Dashboard → Edge Functions → stripe-webhook → Secrets:
-//   STRIPE_SECRET_KEY      = sk_live_...
-//   STRIPE_WEBHOOK_SECRET  = whsec_...  (from Stripe Dashboard → Webhooks)
-// Required Stripe events to subscribe:
-//   checkout.session.completed
-//   customer.subscription.created
-//   customer.subscription.updated
-//   customer.subscription.deleted
-//   invoice.payment_failed
-
 // ══ STATE ════════════════════════════════════════════════════
 const state = {
   currentStep: 1,
-  apiKey:      sessionStorage.getItem('apex_key') || '',
-  deepseekKey: sessionStorage.getItem('apex_ds_key') || '',
-  openaiKey:   sessionStorage.getItem('apex_oai_key') || '',
-  provider:    sessionStorage.getItem('apex_provider') || 'anthropic',
+  provider:    'anthropic',
   analysis:    null,
   machineFile: null,
   humanFile:   null,
   qualityResult: null,
   profileName: '',
+  lastError: null,
+  tourComplete: false,
   // Auth
   user:         null,
   subscription: null,
@@ -1243,7 +1218,7 @@ const activeFilters = new Set(['no_hype','no_hedging','no_padding','no_ai_tells'
 // SUPABASE AUTH
 // ══════════════════════════════════════════════════════════════
 
-let _authMode = 'signin'; // 'signin' | 'signup' | 'magic' | 'check_email'
+let _authMode = 'signin'; // signin | signup | magic | reset | recovery | check_email
 
 function openAuthModal(mode) {
   _authMode = mode || 'signin';
@@ -1268,7 +1243,7 @@ function _renderAuthModal() {
       <div class="auth-check-icon">✓</div>
       <div class="section-eyebrow" style="text-align:center;">Check your inbox</div>
       <div class="modal-title" style="text-align:center;margin-bottom:12px;">Email sent</div>
-      <div class="modal-sub" style="text-align:center;">We sent a sign-in link to <strong id="authSentEmail" style="color:var(--bone);">your email</strong>. Click it to activate your account.</div>
+      <div class="modal-sub" style="text-align:center;">We sent secure instructions to <strong id="authSentEmail" style="color:var(--bone);">your email</strong>.</div>
       <div class="modal-actions" style="justify-content:center;">
         <button type="button" class="btn btn-ghost" onclick="_setAuthMode('signin')">← Back to Sign In</button>
       </div>`;
@@ -1291,7 +1266,7 @@ function _renderAuthModal() {
       <label class="modal-label" for="authPassword" style="margin-top:14px;">Password</label>
       <input type="password" class="modal-input" id="authPassword" placeholder="••••••••" autocomplete="current-password">
       <div style="text-align:right;margin-top:8px;">
-        <button type="button" class="btn-key" style="font-size:10px;padding:3px 8px;border:none;background:none;cursor:pointer;" onclick="_setAuthMode('magic')">Forgot password? →</button><br><button type="button" class="btn-key" style="font-size:10px;padding:3px 8px;border:none;background:none;cursor:pointer;margin-top:6px;" onclick="openPassModal()">Have a gift code or license key? →</button>
+        <button type="button" class="btn-key" style="font-size:10px;padding:3px 8px;border:none;background:none;cursor:pointer;" onclick="_setAuthMode('reset')">Forgot password? →</button><br><button type="button" class="btn-key" style="font-size:10px;padding:3px 8px;border:none;background:none;cursor:pointer;margin-top:6px;" onclick="openPassModal()">Have a gift code or license key? →</button>
       </div>`;
     actionLabel = 'Sign In';
   } else if (m === 'signup') {
@@ -1308,6 +1283,18 @@ function _renderAuthModal() {
       <label class="modal-label" for="authEmail">Email</label>
       <input type="email" class="modal-input" id="authEmail" placeholder="you@example.com" autocomplete="email">`;
     actionLabel = 'Send Magic Link';
+  } else if (m === 'reset') {
+    body = `
+      <div class="modal-sub" style="margin-bottom:16px;">Enter your account email. We will send a one-time password-reset link.</div>
+      <label class="modal-label" for="authEmail">Email</label>
+      <input type="email" class="modal-input" id="authEmail" placeholder="you@example.com" autocomplete="email">`;
+    actionLabel = 'Send Reset Link';
+  } else if (m === 'recovery') {
+    body = `
+      <div class="modal-sub" style="margin-bottom:16px;">Choose a new password for your VoiceEngine account.</div>
+      <label class="modal-label" for="authPassword">New password</label>
+      <input type="password" class="modal-input" id="authPassword" placeholder="Min 8 characters" autocomplete="new-password">`;
+    actionLabel = 'Update Password';
   }
 
   const cancelBtn = state.user
@@ -1337,6 +1324,8 @@ function _authSubmit() {
   if (_authMode === 'signin')  _authSignIn();
   else if (_authMode === 'signup') _authSignUp();
   else if (_authMode === 'magic')  _authMagicLink();
+  else if (_authMode === 'reset') _authResetPassword();
+  else if (_authMode === 'recovery') _authUpdatePassword();
 }
 
 function _authBtnLoading(label) {
@@ -1397,6 +1386,34 @@ async function _authMagicLink() {
   }
 }
 
+async function _authResetPassword() {
+  const email = document.getElementById('authEmail')?.value.trim();
+  if (!email) { toast('Enter your email', 'err'); return; }
+  _authBtnLoading('Sending…');
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: new URL('app.html', window.location.href).href
+  });
+  if (error) {
+    toast(error.message, 'err');
+    _authBtnReset('Send Reset Link');
+    return;
+  }
+  _authMode = 'check_email';
+  _renderAuthModal();
+  const el = document.getElementById('authSentEmail');
+  if (el) el.textContent = email;
+}
+
+async function _authUpdatePassword() {
+  const password = document.getElementById('authPassword')?.value;
+  if (!password || password.length < 8) { toast('Password must be at least 8 characters', 'err'); return; }
+  _authBtnLoading('Updating…');
+  const { error } = await sb.auth.updateUser({ password });
+  if (error) { toast(error.message, 'err'); _authBtnReset('Update Password'); return; }
+  closeAuthModal();
+  toast('Password updated', 'ok');
+}
+
 async function authSignOut() {
   document.getElementById('accountMenu')?.classList.add('hidden');
   await sb.auth.signOut();
@@ -1410,6 +1427,11 @@ async function authSignOut() {
 
 // ══ AUTH STATE CHANGE ═════════════════════════════════════════
 sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    state.user = session?.user || null;
+    openAuthModal('recovery');
+    return;
+  }
   if (session?.user) {
     state.user = session.user;
     closeAuthModal();
@@ -1419,6 +1441,7 @@ sb.auth.onAuthStateChange(async (event, session) => {
       _maybeAutoStartTour();
     }
     await _loadSubscription();   // sets state.subscription, state.dailyLimit, state.usageToday
+    await _loadPreferences();
     _updateAccountUI();          // reflects plan + usage in header
     await loadSavedProfilesMeta();
   } else {
@@ -1430,12 +1453,12 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-// ══ SUBSCRIPTION ═════════════════════════════════════════════
+// ══ ENTITLEMENT SOURCE OF TRUTH ══════════════════════════════
 
 async function _loadSubscription() {
   if (!state.user) return;
   const { data } = await sb
-    .from('subscriptions')
+    .from('entitlements')
     .select('*')
     .eq('user_id', state.user.id)
     .maybeSingle();
@@ -1445,9 +1468,13 @@ async function _loadSubscription() {
   if (!data) {
     state.dailyLimit = 0;
   } else if (data.status === 'active') {
-    state.dailyLimit = 50;
+    state.dailyLimit = Number(data.daily_limit) || 0;
+  } else if (data.status === 'grace' && data.grace_until && new Date(data.grace_until) > new Date()) {
+    state.dailyLimit = Number(data.daily_limit) || 0;
   } else if (data.status === 'trial') {
-    state.dailyLimit = new Date(data.trial_ends_at) > new Date() ? 5 : 0;
+    state.dailyLimit = data.valid_until && new Date(data.valid_until) > new Date()
+      ? Number(data.daily_limit) || 0
+      : 0;
   } else {
     state.dailyLimit = 0;
   }
@@ -1468,38 +1495,31 @@ async function _loadTodayUsage() {
   state.usageToday = data?.request_count || 0;
 }
 
-// Calls DB function; returns true = allowed, false = blocked
+// Fast client preflight. The AI gateway performs the authoritative atomic
+// entitlement check and usage increment immediately before each provider call.
 async function _checkUsageGate() {
-  // Access pass (gift code / lifetime license) bypasses the payment gate
-  if (hasPass()) return true;
-
-  // Local Mode — cloud unreachable: enforce the free limit on-device
-  if (!CLOUD_OK) return _localUsageGate();
-
-  if (!state.user) {
+  if (!CLOUD_OK || !state.user) {
     openAuthModal('signin');
     return false;
   }
-
-  const { data, error } = await sb.rpc('check_and_increment_usage', { p_user_id: state.user.id });
-
-  if (error) {
-    toast('Usage check failed — try again', 'err');
-    return false;
-  }
-
-  const row = Array.isArray(data) ? data[0] : data;
-  if (!row) { toast('Usage check failed', 'err'); return false; }
-
-  state.usageToday  = row.current_count;
-  state.dailyLimit  = row.day_limit;
-  _updateUsageUI();
-
-  if (!row.allowed) {
-    _openPaywall(row.current_count, row.day_limit);
+  if (state.dailyLimit <= state.usageToday) {
+    _openPaywall(state.usageToday, state.dailyLimit);
     return false;
   }
   return true;
+}
+
+async function _loadPreferences() {
+  if (!state.user) return;
+  const { data } = await sb.from('user_preferences')
+    .select('tour_completed_at,tour_skipped_at,preferred_provider')
+    .eq('user_id', state.user.id)
+    .maybeSingle();
+  state.tourComplete = Boolean(data?.tour_completed_at || data?.tour_skipped_at);
+  if (data?.preferred_provider && ['anthropic','deepseek','openai'].includes(data.preferred_provider)) {
+    state.provider = data.preferred_provider;
+    syncProviderUI();
+  }
 }
 
 // ══ ACCOUNT UI ═══════════════════════════════════════════════
@@ -1508,9 +1528,9 @@ function _getPlanLabel() {
   if (!state.subscription) return 'FREE';
   const s = state.subscription;
   if (s.status === 'active')   return 'PRO';
-  if (s.status === 'past_due') return 'PAST DUE';
+  if (s.status === 'grace') return 'PAYMENT DUE';
   if (s.status === 'trial') {
-    return new Date(s.trial_ends_at) > new Date() ? 'TRIAL' : 'EXPIRED';
+    return s.valid_until && new Date(s.valid_until) > new Date() ? 'TRIAL' : 'EXPIRED';
   }
   return s.status.toUpperCase();
 }
@@ -1535,16 +1555,6 @@ function _updateAccountUI() {
       planEl.className    = 'acct-plan ' + status;
     }
     if (signInEl) signInEl.classList.add('hidden');
-  } else if (hasPass()) {
-    const p = _getPass();
-    if (wrap) {
-      wrap.classList.remove('hidden');
-      wrap.querySelector('.acct-initials').textContent = '◈';
-      const planEl = wrap.querySelector('.acct-plan');
-      planEl.textContent = p.type === 'gumroad' ? 'LIFETIME' : 'VIP';
-      planEl.className   = 'acct-plan active';
-    }
-    if (signInEl) signInEl.classList.add('hidden');
   } else {
     if (wrap) wrap.classList.add('hidden');
     if (signInEl) signInEl.classList.remove('hidden');
@@ -1555,12 +1565,10 @@ function _updateAccountUI() {
 function _updateUsageUI() {
   const el = document.getElementById('usagePill');
   if (!el) return;
-  if (hasPass()) { el.classList.remove('hidden'); el.textContent = '∞ UNLIMITED'; el.className = 'usage-pill'; return; }
   if (!CLOUD_OK && !state.user) {
-    const rem = Math.max(0, 5 - _localUsageToday());
     el.classList.remove('hidden');
-    el.textContent = `${rem}/5 left`;
-    el.className = 'usage-pill' + (rem === 0 ? ' depleted' : rem <= 1 ? ' low' : '');
+    el.textContent = 'AI OFFLINE';
+    el.className = 'usage-pill depleted';
     return;
   }
   if (!state.user || !state.subscription) { el.classList.add('hidden'); return; }
@@ -1575,19 +1583,6 @@ function _updateAccountMenu() {
   const menuActs = document.getElementById('menuActions');
   if (!menuActs) return;
 
-  // Pass holder without an account — dedicated menu
-  if (!state.user && hasPass()) {
-    const p = _getPass();
-    document.getElementById('menuEmail').textContent = 'Access pass — no account';
-    document.getElementById('menuPlan').textContent  = p.type === 'gumroad' ? '✓ Lifetime license' : '✓ VIP gift access';
-    document.getElementById('menuUsage').textContent = 'Unlimited on this device';
-    menuActs.innerHTML =
-      `<button type="button" class="menu-item" onclick="_closeMenu();startTour()">? Show Me Around</button>` +
-      `<button type="button" class="menu-item" onclick="_closeMenu();openAuthModal('signin')">→ Sign In / Create Account</button>` +
-      `<button type="button" class="menu-item danger" onclick="removePass()">✕ Remove Access Pass</button>`;
-    return;
-  }
-
   let subLine = 'No subscription';
   let isPro   = false;
 
@@ -1595,20 +1590,18 @@ function _updateAccountMenu() {
     if (sub.status === 'active') {
       isPro   = true;
       let renewInfo = '';
-      if (sub.cancel_at_period_end && sub.current_period_end) {
-        const d = new Date(sub.current_period_end);
-        renewInfo = ` — cancels ${d.toLocaleDateString()}`;
-      } else if (sub.current_period_end) {
-        const d = new Date(sub.current_period_end);
-        renewInfo = ` — renews ${d.toLocaleDateString()}`;
+      if (sub.valid_until) {
+        const d = new Date(sub.valid_until);
+        renewInfo = sub.product_tier === 'lifetime' ? '' : ` — through ${d.toLocaleDateString()}`;
       }
-      subLine = `✓ Pro${renewInfo}`;
+      subLine = `✓ ${sub.product_tier === 'lifetime' ? 'Lifetime' : 'Pro'}${renewInfo}`;
     } else if (sub.status === 'trial') {
-      const d        = new Date(sub.trial_ends_at);
+      const d        = new Date(sub.valid_until);
       const daysLeft = Math.max(0, Math.ceil((d - Date.now()) / 86400000));
       subLine = daysLeft > 0 ? `Trial — ${daysLeft}d left` : 'Trial expired';
-    } else if (sub.status === 'past_due') {
-      subLine = '⚠ Past due — payment failed';
+    } else if (sub.status === 'grace') {
+      const grace = sub.grace_until ? new Date(sub.grace_until).toLocaleDateString() : 'soon';
+      subLine = `⚠ Payment due — access through ${grace}`;
     } else {
       subLine = sub.status.charAt(0).toUpperCase() + sub.status.slice(1);
     }
@@ -1621,20 +1614,17 @@ function _updateAccountMenu() {
   // Build action items dynamically
   let actions = '';
   if (isPro) {
-    const portalReady = _isHttpsUrl(STRIPE.portal);
-    if (portalReady) {
-      actions += `<button type="button" class="menu-item" onclick="_closeMenu();openBillingPortal()">⇄ Manage Billing</button>`;
-    } else {
-      actions += `<button type="button" class="menu-item" onclick="_closeMenu();toast('Billing portal not yet configured — contact support','warn')" style="opacity:0.6;">⇄ Manage Billing</button>`;
-    }
-  } else if (sub?.status === 'past_due') {
+    actions += `<button type="button" class="menu-item" onclick="_closeMenu();openBillingPortal()">⇄ Manage Billing</button>`;
+  } else if (sub?.status === 'grace') {
     actions += `<button type="button" class="menu-item" style="color:var(--amber)" onclick="_closeMenu();goStripe('monthly')">⚠ Fix Payment</button>`;
   } else {
     actions += `<button type="button" class="menu-item" onclick="_closeMenu();goStripe('annual')">↑ Upgrade to Pro</button>`;
   }
   actions += `<button type="button" class="menu-item" onclick="_closeMenu();_refreshPlan()">↺ Refresh Plan</button>`;
   actions += `<button type="button" class="menu-item" onclick="_closeMenu();startTour()">? Show Me Around</button>`;
-  if (!isPro && !hasPass()) actions += `<button type="button" class="menu-item" onclick="_closeMenu();openPassModal()">◈ Redeem Access</button>`;
+  if (state.lastError) actions += `<button type="button" class="menu-item" onclick="_closeMenu();reportLastError()">! Report Last Error</button>`;
+  if (!isPro) actions += `<button type="button" class="menu-item" onclick="_closeMenu();openPassModal()">◈ Redeem Access</button>`;
+  actions += `<button type="button" class="menu-item danger" onclick="_closeMenu();deleteAccount()">Delete Account</button>`;
   actions += `<button type="button" class="menu-item danger" onclick="authSignOut()">Sign Out</button>`;
   menuActs.innerHTML = actions;
 }
@@ -1703,15 +1693,48 @@ function goStripe(interval) {
   window.open(target.href, '_blank', 'noopener,noreferrer');
 }
 
-function openBillingPortal() {
-  if (!_isHttpsUrl(STRIPE.portal)) {
-    toast('Billing portal not yet configured — contact support', 'warn');
+async function openBillingPortal() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { openAuthModal('signin'); return; }
+  const res = await _fetchWithTimeout(`${SUPABASE_URL}/functions/v1/billing-portal`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+    body: '{}'
+  }, 20000);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !_isHttpsUrl(data.url)) {
+    toast(data.error || 'Billing portal unavailable — contact support', 'err');
     return;
   }
-  window.open(STRIPE.portal, '_blank', 'noopener,noreferrer');
+  window.open(data.url, '_blank', 'noopener,noreferrer');
 }
 
-// ══ API KEY MODAL ════════════════════════════════════════════
+async function deleteAccount() {
+  if (!state.user) return;
+  const confirmation = window.prompt('This permanently deletes your account, saved profiles, exports, and plan mapping. Type DELETE to continue.');
+  if (confirmation !== 'DELETE') {
+    if (confirmation !== null) toast('Account deletion canceled', 'warn');
+    return;
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { openAuthModal('signin'); return; }
+  const res = await _fetchWithTimeout(`${SUPABASE_URL}/functions/v1/account-delete`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirmation })
+  }, 30000);
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    toast(data.error || 'Account deletion failed', 'err');
+    return;
+  }
+  sessionStorage.removeItem('bndr_last_error');
+  localStorage.removeItem(LOCAL_PROFILES_KEY);
+  await sb.auth.signOut();
+  window.location.replace('index.html?account=deleted');
+}
+
+// ══ AI PROVIDER ══════════════════════════════════════════════
 
 function switchProviderTab(p) {
   ['anthropic','deepseek','openai'].forEach(id => {
@@ -1721,13 +1744,7 @@ function switchProviderTab(p) {
     if (tab)   tab.classList.toggle('active', id === p);
     if (panel) panel.classList.toggle('hidden', id !== p);
   });
-  const keyMap = {
-    anthropic: ['apiKeyInput', state.apiKey],
-    deepseek:  ['deepseekKeyInput', state.deepseekKey],
-    openai:    ['openaiKeyInput', state.openaiKey]
-  };
-  const [inputId, val] = keyMap[p] || [];
-  if (inputId && val) document.getElementById(inputId).value = val;
+  document.getElementById('keyModal').dataset.provider = p;
 }
 
 function syncProviderUI() {
@@ -1741,54 +1758,35 @@ function syncProviderUI() {
 function openKeyModal() {
   document.getElementById('keyModal').classList.remove('hidden');
   switchProviderTab(state.provider);
-  const inputIds = { anthropic:'apiKeyInput', deepseek:'deepseekKeyInput', openai:'openaiKeyInput' };
-  const inp = document.getElementById(inputIds[state.provider] || 'apiKeyInput');
-  setTimeout(() => inp && inp.focus(), 100);
 }
 function closeKeyModal() {
   document.getElementById('keyModal').classList.add('hidden');
 }
 
-function saveApiKey() {
+async function saveProvider() {
   const activeTab = ['anthropic','deepseek','openai'].find(p => {
     const el = document.getElementById('provTab' + p.charAt(0).toUpperCase() + p.slice(1));
     return el && el.classList.contains('active');
   }) || 'anthropic';
-
-  if (activeTab === 'deepseek') {
-    if (!state.user) {
-      closeKeyModal();
-      toast('Sign in first to use the authenticated DeepSeek relay', 'warn');
-      openAuthModal('signin');
-      return;
-    }
-    const key = document.getElementById('deepseekKeyInput').value.trim();
-    if (!key || key.length < 10) { toast('Enter a valid DeepSeek API key', 'err'); return; }
-    state.deepseekKey = key; state.provider = 'deepseek';
-    sessionStorage.setItem('apex_ds_key', key);
-    sessionStorage.setItem('apex_provider', 'deepseek');
-  } else if (activeTab === 'openai') {
-    const key = document.getElementById('openaiKeyInput').value.trim();
-    if (!key || !key.startsWith('sk-')) { toast('Enter a valid OpenAI API key', 'err'); return; }
-    state.openaiKey = key; state.provider = 'openai';
-    sessionStorage.setItem('apex_oai_key', key);
-    sessionStorage.setItem('apex_provider', 'openai');
-  } else {
-    const key = document.getElementById('apiKeyInput').value.trim();
-    if (!key || !key.startsWith('sk-')) { toast('Enter a valid Anthropic API key', 'err'); return; }
-    state.apiKey = key; state.provider = 'anthropic';
-    sessionStorage.setItem('apex_key', key);
-    sessionStorage.setItem('apex_provider', 'anthropic');
-  }
+  state.provider = activeTab;
   closeKeyModal();
   syncProviderUI();
-  toast('AI key saved for this session', 'ok');
+  if (state.user) {
+    await sb.from('user_preferences').upsert({
+      user_id: state.user.id,
+      preferred_provider: state.provider
+    }, { onConflict: 'user_id' });
+  }
+  toast('AI provider selected', 'ok');
   updateStatus('ready', 'READY');
 }
 
-function requireKey() {
-  const keyMap = { anthropic: state.apiKey, deepseek: state.deepseekKey, openai: state.openaiKey };
-  if (!keyMap[state.provider]) { openKeyModal(); return false; }
+function requireGateway() {
+  if (!CLOUD_OK || !state.user) {
+    openAuthModal('signin');
+    toast('Sign in to use the secure AI gateway', 'warn');
+    return false;
+  }
   return true;
 }
 
@@ -1807,39 +1805,9 @@ async function _fetchWithTimeout(url, options = {}, timeoutMs = 120000) {
   }
 }
 
-async function callClaude(systemPrompt, userPrompt, maxTokens = 2000) {
-  if (state.provider === 'deepseek') return _callDeepSeek(systemPrompt, userPrompt, maxTokens);
-  if (state.provider === 'openai')   return _callOpenAI(systemPrompt, userPrompt, maxTokens);
-  if (!requireKey()) throw new Error('No API key');
-  const res = await _fetchWithTimeout('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type':    'application/json',
-      'x-api-key':       state.apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model:       AI_MODELS.anthropic,
-      max_tokens:  maxTokens,
-      system:      systemPrompt,
-      messages:    [{ role: 'user', content: userPrompt }]
-    })
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: { message: 'Unknown API error' } }));
-    throw new Error(err.error?.message || `API error ${res.status}`);
-  }
-  const data = await res.json();
-  return data.content?.find(block => block.type === 'text')?.text || '';
-}
-
-async function _callDeepSeek(systemPrompt, userPrompt, maxTokens = 2000) {
-  if (!state.deepseekKey) { openKeyModal(); throw new Error('No DeepSeek API key'); }
-
-  // Route through Supabase edge function to resolve browser CORS restriction
+async function callVoiceEngine(operation, payload) {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) throw new Error('Sign in required to use DeepSeek');
+  if (!session) throw _makeError('VE-AUTH_REQUIRED', 'Sign in required');
 
   let res;
   try {
@@ -1847,55 +1815,118 @@ async function _callDeepSeek(systemPrompt, userPrompt, maxTokens = 2000) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
+        Authorization: `Bearer ${session.access_token}`
       },
       body: JSON.stringify({
-        provider: 'deepseek',
-        key: state.deepseekKey,
-        model: AI_MODELS.deepseek,
-        max_tokens: maxTokens,
-        thinking: { type: 'enabled' },
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ]
+        provider: state.provider,
+        operation,
+        payload
       })
     });
-  } catch (e) {
-    throw new Error(`DeepSeek proxy unreachable: ${e.message}`);
+  } catch (caught) {
+    const err = _makeError('VE-GATEWAY', 'Secure AI gateway is unreachable');
+    _recordError(err);
+    throw err;
   }
 
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'Unknown API error' }));
-    throw new Error(err.error?.message || err.error || `DeepSeek error ${res.status}`);
+    const detail = data.error || {};
+    const err = _makeError(detail.code || 'VE-GATEWAY', detail.message || `AI request failed (${res.status})`, detail.correlation_id);
+    if (res.status === 402 && data.entitlement) {
+      state.usageToday = data.entitlement.current_count || state.usageToday;
+      state.dailyLimit = data.entitlement.daily_limit || state.dailyLimit;
+      _updateUsageUI();
+      _openPaywall(state.usageToday, state.dailyLimit);
+    }
+    _recordError(err);
+    throw err;
   }
-  const data = await res.json();
-  // Thinking-capable responses may include reasoning_content; only content is returned.
-  return data.choices?.[0]?.message?.content || '';
+
+  if (data.usage) {
+    state.usageToday = data.usage.current_count || state.usageToday;
+    state.dailyLimit = data.usage.daily_limit || state.dailyLimit;
+    _updateUsageUI();
+  }
+  if (!data.content) {
+    const err = _makeError('VE-EMPTY', 'AI provider returned no content', data.correlation_id);
+    _recordError(err);
+    throw err;
+  }
+  return data.content;
 }
 
-async function _callOpenAI(systemPrompt, userPrompt, maxTokens = 2000) {
-  if (!state.openaiKey) { openKeyModal(); throw new Error('No OpenAI API key'); }
-  let res;
-  try {
-    res = await _fetchWithTimeout('https://api.openai.com/v1/chat/completions', {
+function _makeError(code, message, correlationId) {
+  const err = new Error(message);
+  err.code = code;
+  err.correlationId = correlationId || crypto.randomUUID();
+  return err;
+}
+
+function _recordError(error) {
+  const safe = {
+    error_code: String(error?.code || 'VE-CLIENT'),
+    message: String(error?.message || 'Unknown error').slice(0, 2000),
+    correlation_id: String(error?.correlationId || crypto.randomUUID()),
+    route: window.location.pathname,
+    app_version: CFG.APP_VERSION || 'unknown',
+    build_commit: CFG.BUILD_COMMIT || 'not-injected',
+    utc_timestamp: new Date().toISOString(),
+    user_agent: navigator.userAgent.slice(0, 300),
+    provider: state.provider,
+    browser_context: {
+      online: navigator.onLine,
+      language: navigator.language,
+      viewport: `${window.innerWidth}x${window.innerHeight}`,
+      user_agent: navigator.userAgent.slice(0, 300),
+      build_commit: CFG.BUILD_COMMIT || 'not-injected',
+      utc_timestamp: new Date().toISOString()
+    }
+  };
+  state.lastError = safe;
+  try { sessionStorage.setItem('bndr_last_error', JSON.stringify(safe)); } catch (_) {}
+  _updateAccountMenu();
+  return safe;
+}
+
+function _buildErrorReportText(report) {
+  const repairPrompt = `You are debugging BNDR VoiceEngine. Error ${report.error_code}, correlation ${report.correlation_id}, route ${report.route}, version ${report.build_commit || report.app_version}. Locate root cause in the codebase, fix it at the root, then run the full audit loop (test → fix → retest) until everything passes. Report the fix and the green results.`;
+  return [
+    'BNDR VoiceEngine error report',
+    `Code: ${report.error_code}`,
+    `Correlation: ${report.correlation_id}`,
+    `Route: ${report.route}`,
+    `UTC: ${report.utc_timestamp || new Date().toISOString()}`,
+    `Version: ${report.app_version} (${report.build_commit || 'not-injected'})`,
+    `Browser: ${report.user_agent || navigator.userAgent}`,
+    `Message: ${report.message}`,
+    '',
+    repairPrompt
+  ].join('\n').slice(0, 1480);
+}
+
+async function reportLastError() {
+  const report = state.lastError;
+  if (!report) { toast('No recent error to report', 'warn'); return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const res = await _fetchWithTimeout(`${SUPABASE_URL}/functions/v1/error-report`, {
       method: 'POST',
-      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${state.openaiKey}` },
-      body: JSON.stringify({
-        model: AI_MODELS.openai,
-        max_completion_tokens: maxTokens,
-        reasoning_effort: 'low',
-        response_format: { type: 'json_object' },
-        messages: [{ role:'system', content:systemPrompt }, { role:'user', content:userPrompt }]
-      })
-    });
-  } catch (e) { throw new Error(`OpenAI unreachable: ${e.message}. Check your network.`); }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: { message: 'Unknown API error' } }));
-    throw new Error(err.error?.message || `OpenAI error ${res.status}`);
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(report)
+    }, 20000);
+    if (res.ok) { toast(`Report sent · ${report.correlation_id}`, 'ok'); return; }
   }
-  return (await res.json()).choices[0]?.message?.content || '';
+  const details = _buildErrorReportText(report);
+  try {
+    await navigator.clipboard.writeText(details);
+    toast('Error details copied — paste them into the support email', 'ok');
+  } catch (_) {
+    toast(`Error reference: ${report.correlation_id}`, 'warn');
+  }
+  if (CFG.SUPPORT_EMAIL) {
+    window.location.href = `mailto:${encodeURIComponent(CFG.SUPPORT_EMAIL)}?subject=${encodeURIComponent(`[${report.error_code}] VoiceEngine error`)}&body=${encodeURIComponent(details)}`;
+  }
 }
 
 function updateStatus(mode, text) {
@@ -1987,7 +2018,7 @@ This isn't one of them.`;
 // ══ ANALYSIS ═════════════════════════════════════════════════
 
 async function runAnalysis() {
-  if (!requireKey()) return;
+  if (!requireGateway()) return;
 
   // Disable immediately — prevents double-submit during async gate check
   const analyzeBtn = document.getElementById('analyzeBtn');
@@ -2012,58 +2043,13 @@ async function runAnalysis() {
   const context  = document.getElementById('writingContext').value;
   const industry = document.getElementById('industryInput').value;
 
-  const systemPrompt = `You are a precision voice-pattern extraction engine. Your function is forensic linguistic analysis: you study writing samples the way a typographer studies letterforms — every observable pattern is evidence, nothing is assumed. You extract measurable, reproducible voice characteristics from text. You base every output field on evidence present in the sample only. You never infer personality, invent traits, or extrapolate beyond what the text demonstrates. You output valid JSON only. No markdown fences, no preamble, no explanation outside the structure.`;
-
-  const userPrompt = `<task>
-Analyze the writing sample below. Every field you complete must cite observable evidence from the text — not inferences about the author's personality or intent. Treat the sample as data.
-</task>
-
-<output_schema>
-Return exactly this JSON object. No additional keys. No commentary outside the braces.
-{
-  "tone_primary": "the dominant register — one precise word or hyphenated compound that names the voice's primary mode (e.g. 'direct', 'sardonic', 'measured-authoritative', 'warm-urgent')",
-  "tone_secondary": "the underlying counter-tone that creates texture — one word or compound (e.g. 'impatient', 'skeptical', 'earnest', 'dry')",
-  "energy_level": <integer 0-100>,
-  "formality_score": <integer 0-100>,
-  "directness_score": <integer 0-100>,
-  "specificity_score": <integer 0-100>,
-  "confidence_score": <integer 0-100>,
-  "sentence_rhythm": "a precise mechanical descriptor — include typical length range and structural pattern",
-  "paragraph_style": "how paragraphs are built and sized — include typical sentence count and internal structure",
-  "structural_pattern": "the underlying logic architecture — how the author builds a point from start to finish",
-  "risk_handling": "exactly how the author treats controversial, polarizing, or uncomfortable claims",
-  "signature_moves": ["3-5 distinct, observable writing behaviors — each phrased as a specific action verb + object"],
-  "vocabulary_register": "precise characterization of word choice — complexity level, Anglo-Saxon vs Latinate tendency, domain jargon",
-  "phrasing_habits": ["3-4 recurring syntactic patterns — each described as a specific construction"],
-  "what_they_avoid": ["3-4 things demonstrably absent — constructions, hedges, vocabulary, or structural choices not present"],
-  "one_sentence_summary": "a single sentence written as a replication instruction — include the two most forensically distinctive traits"
-}
-</output_schema>
-
-<score_calibration>
-energy_level:    90-100=kinetic manifesto urgency | 70-89=high conviction | 50-69=engaged conversational | 25-49=measured low-temp | 0-24=flat passive
-formality_score: 90-100=legal/academic/C-suite | 70-89=business professional | 45-69=professional-casual | 20-44=conversational | 0-19=colloquial raw
-directness_score:90-100=conclusion in first sentence | 70-89=direct minimal framing | 45-69=balanced | 20-44=indirect | 0-19=heavily hedged
-specificity_score:90-100=precise figures named examples throughout | 70-89=mostly concrete | 45-69=mixed | 20-44=mostly abstract | 0-19=pure abstraction
-confidence_score: 90-100=opinions as settled facts | 70-89=confident minimal qualification | 45-69=balanced | 20-44=frequent hedging | 0-19=deeply uncertain
-</score_calibration>
-
-${context  ? `<context>Primary use: ${context}.</context>` : ''}
-${industry ? `<domain>Industry: ${industry}.</domain>` : ''}
-
-<sample>
-${sample}
-</sample>
-
-Return only the JSON object.`;
-
   _cycleLoadingText('analysisLoadingText', [
     'READING VOICE PATTERNS…', 'MAPPING SENTENCE RHYTHM…',
     'CALIBRATING TONE REGISTERS…', 'DETECTING SIGNATURE MOVES…', 'FINALIZING VOICE DNA…'
   ]);
 
   try {
-    const raw      = await _callWithRetry(systemPrompt, userPrompt, 1500);
+    const raw      = await _callWithRetry('analyze', { sample, context, industry });
     state.analysis = _validateAnalysis(_parseAIJSON(raw));
     renderAnalysis(state.analysis);
     const nameField = document.getElementById('profileName');
@@ -2081,15 +2067,17 @@ Return only the JSON object.`;
     _updateUsageUI();
     toast('Voice analysis complete', 'ok');
   } catch (e) {
+    _recordError(e);
     document.getElementById('analysisLoading').classList.add('hidden');
     // Stay on step 2 — show inline error with retry. Never send user back to step 1.
     document.getElementById('analysisError').innerHTML = `
       <div class="panel" style="border-color:rgba(255,59,59,0.3);">
         <div class="panel-body" style="padding:24px;">
           <div class="section-eyebrow" style="color:var(--red);margin-bottom:8px;">Analysis Failed</div>
-          <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">${escapeHtml(e.message || 'Unknown error — check your API key and network.')}</p>
+          <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">${escapeHtml(e.message || 'Unknown error — try again or contact support.')}</p>
           <div class="flex-row">
             <button type="button" class="btn btn-primary" onclick="runAnalysis()">Retry</button>
+            <button type="button" class="btn btn-ghost" onclick="reportLastError()">Report this</button>
             <button type="button" class="btn btn-ghost" onclick="goStep(1)">← Edit Sample</button>
           </div>
         </div>
@@ -2181,7 +2169,7 @@ function clearFilters() { activeFilters.clear(); renderFilters(); }
 // ══ GENERATE PROFILE ══════════════════════════════════════════
 
 async function runGenerate() {
-  if (!requireKey()) return;
+  if (!requireGateway()) return;
   if (!state.analysis) { toast('Run analysis first', 'err'); return; }
 
   // Disable immediately — prevents double-submit during async gate check
@@ -2214,99 +2202,18 @@ async function runGenerate() {
     'ENCODING VOCABULARY FINGERPRINT…', 'WRITING SYSTEM PROMPT…', 'FINALIZING PROFILE…'
   ]);
 
-  const systemPrompt = `You are a voice profile compiler for enterprise writing systems. Your output is a deterministic AI writing blueprint — a structured instruction set that any AI assistant can follow to reproduce a specific human's voice with precision. Your profiles are used by Fortune 500 brand teams, creative directors, and founders to enforce voice consistency at scale. Every field you produce is an actionable instruction, not a description. Vague outputs fail. Precise outputs succeed. You output valid JSON only — no markdown fences, no preamble, no prose outside the structure.`;
-
-  const _voiceDNA = {
-    tone_primary:       state.analysis.tone_primary,
-    tone_secondary:     state.analysis.tone_secondary,
-    energy_level:       state.analysis.energy_level,
-    formality_score:    state.analysis.formality_score,
-    directness_score:   state.analysis.directness_score,
-    confidence_score:   state.analysis.confidence_score,
-    specificity_score:  state.analysis.specificity_score,
-    sentence_rhythm:    state.analysis.sentence_rhythm,
-    paragraph_style:    state.analysis.paragraph_style,
-    structural_pattern: state.analysis.structural_pattern,
-    risk_handling:      state.analysis.risk_handling,
-    signature_moves:    state.analysis.signature_moves,
-    vocabulary_register:state.analysis.vocabulary_register,
-    phrasing_habits:    state.analysis.phrasing_habits,
-    what_they_avoid:    state.analysis.what_they_avoid,
-    one_sentence_summary: state.analysis.one_sentence_summary
-  };
-
-  const userPrompt = `<task>
-Compile a complete voice profile from the forensic voice analysis below. Translate every characteristic into a precise, enforceable writing instruction. This profile will be loaded as a system prompt into enterprise AI tools. Every rule must be specific enough that two different AI models reading the same profile produce nearly identical output style.
-</task>
-
-<voice_dna>
-${JSON.stringify(_voiceDNA, null, 2)}
-</voice_dna>
-
-${override ? `<user_corrections>\n${override}\n</user_corrections>` : ''}
-
-<parameters>
-Profile name: ${profileName}
-Writing goal: ${goal}
-Primary audience: ${audience || 'professional adult reader'}
-Content type: ${contentTypes}
-${avoid  ? `Topics/subjects to never address: ${avoid}` : ''}
-${custom ? `Additional instructions from the author: ${custom}` : ''}
-</parameters>
-
-<active_filters>
-These are non-negotiable hard constraints. Every filter must appear as an explicit, named rule in the system_prompt field.
-${filters.map(f => `${f.name}: ${f.desc}`).join('\n')}
-</active_filters>
-
-<output_schema>
-Return exactly this JSON object. All rule fields must be written as imperative instructions, not descriptions.
-{
-  "profile_name": "${profileName}",
-  "version": "1.0",
-  "generated": "ISO timestamp",
-  "voice_identity": {
-    "one_line": "a single replication-ready sentence: 'Write as a [tone] voice that [2 most distinctive structural traits]'",
-    "tone_stack": ["primary tone", "secondary tone", "tertiary if present — omit if not"],
-    "energy": "a precise energy instruction",
-    "formality": "a precise formality instruction",
-    "risk_tolerance": "a precise instruction for how to handle contested or uncomfortable claims"
-  },
-  "writing_rules": {
-    "sentence_structure": "an exact, imperative rule",
-    "paragraph_structure": "an exact, imperative rule",
-    "opening_style": "an exact, imperative rule for how every piece should begin",
-    "closing_style": "an exact, imperative rule for how every piece should end",
-    "rhythm_pattern": "an exact rhythm instruction",
-    "transition_style": "an exact instruction for connecting ideas"
-  },
-  "vocabulary": {
-    "register": "a precise vocabulary instruction specifying complexity, preferred word origins, and domain terms",
-    "preferred_patterns": ["4-6 specific phrasing constructions to actively use"],
-    "banned_words": ["10-14 specific words or phrases that must never appear"],
-    "brand_words": ["3-5 words or short phrases that are the author's verbal fingerprint"]
-  },
-  "structural_logic": {
-    "argument_style": "an exact instruction for how to build a point",
-    "evidence_preference": "an exact instruction for how to support claims",
-    "tension_handling": "an exact instruction for managing conflict or challenge in writing",
-    "opinion_expression": "an exact instruction for stating views"
-  },
-  "active_filters": ${JSON.stringify(filters.map(f => ({ id: f.id, name: f.name, rule: f.desc })))},
-  "context": {
-    "goal": "${goal}",
-    "audience": "${audience || 'professional general'}",
-    "content_type": "${contentTypes}",
-    "avoid": ${JSON.stringify(avoid || '')}
-  },
-  "system_prompt": "A complete, copy-paste-ready system prompt of 250-400 words covering: role declaration, voice identity, sentence/paragraph rules, vocabulary rules, structural logic, hard filter constraints as explicit IF-THEN rules, and context."
-}
-</output_schema>
-
-Return only the JSON object.`;
-
   try {
-    const raw         = await _callWithRetry(systemPrompt, userPrompt, 2500);
+    const raw         = await _callWithRetry('compile', {
+      analysis: state.analysis,
+      profile_name: profileName,
+      goal,
+      audience,
+      content_type: contentTypes,
+      avoid,
+      custom_instructions: custom,
+      author_corrections: override,
+      filter_ids: filters.map(filter => filter.id)
+    });
     state.machineFile = _validateMachineFile(_parseAIJSON(raw));
     state.machineFile.generated = new Date().toISOString();
     state.humanFile   = buildHumanDoc(state.machineFile);
@@ -2322,15 +2229,17 @@ Return only the JSON object.`;
     loadSavedProfilesMeta();
     toast('Profile generated', 'ok');
   } catch (e) {
+    _recordError(e);
     document.getElementById('generateLoading').classList.add('hidden');
     // Stay on step 4 — show inline error with retry. Don't send back to step 3.
     document.getElementById('generateError').innerHTML = `
       <div class="panel" style="border-color:rgba(255,59,59,0.3);">
         <div class="panel-body" style="padding:24px;">
           <div class="section-eyebrow" style="color:var(--red);margin-bottom:8px;">Generation Failed</div>
-          <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">${escapeHtml(e.message || 'Unknown error — check your API key and network.')}</p>
+          <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">${escapeHtml(e.message || 'Unknown error — try again or contact support.')}</p>
           <div class="flex-row">
             <button type="button" class="btn btn-primary" onclick="runGenerate()">Retry</button>
+            <button type="button" class="btn btn-ghost" onclick="reportLastError()">Report this</button>
             <button type="button" class="btn btn-ghost" onclick="goStep(3)">← Reconfigure</button>
           </div>
         </div>
@@ -2423,7 +2332,7 @@ function renderOutput() {
 // ══ QUALITY CHECK ══════════════════════════════════════════════
 
 async function runQualityCheck() {
-  if (!requireKey()) return;
+  if (!requireGateway()) return;
   if (!state.machineFile) { toast('Generate a profile first', 'err'); return; }
 
   // Quality check costs a usage token
@@ -2435,39 +2344,16 @@ async function runQualityCheck() {
   updateStatus('working', 'QC CHECK…');
 
   const sample = document.getElementById('sampleText').value.trim();
-  const systemPrompt = `You are a voice profile quality checker. Evaluate whether a voice profile accurately captures and can reproduce the voice from the original sample. Return only JSON.`;
-  const userPrompt   = `Compare this voice profile against the original writing sample and score the match.
-
-ORIGINAL SAMPLE (first 400 words):
-${sample.split(/\s+/).slice(0, 400).join(' ')}
-
-VOICE PROFILE SYSTEM PROMPT:
-${state.machineFile.system_prompt}
-
-Return this JSON:
-{
-  "overall_score": 0-100,
-  "pass": true/false,
-  "dimensions": {
-    "tone_accuracy":     { "score": 0-100, "note": "one sentence" },
-    "rhythm_capture":    { "score": 0-100, "note": "one sentence" },
-    "vocabulary_match":  { "score": 0-100, "note": "one sentence" },
-    "filter_coverage":   { "score": 0-100, "note": "one sentence" },
-    "drift_resistance":  { "score": 0-100, "note": "one sentence" }
-  },
-  "strengths": ["2-3 strings"],
-  "gaps": ["0-2 strings"],
-  "verdict": "one sentence"
-}`;
 
   try {
-    const raw          = await _callWithRetry(systemPrompt, userPrompt, 800);
+    const raw          = await _callWithRetry('quality', { sample, profile: state.machineFile });
     state.qualityResult = _parseAIJSON(raw);
     renderQuality(state.qualityResult);
     updateStatus('ready', 'COMPLETE');
     _updateUsageUI();
     toast('Quality check complete', 'ok');
   } catch (e) {
+    _recordError(e);
     toast(e.message || 'QC failed', 'err');
     updateStatus('error', 'ERROR');
   } finally {
@@ -2539,20 +2425,33 @@ function copyHuman() {
     .then(() => toast('Instructions copied', 'ok'))
     .catch(() => toast('Copy failed', 'err'));
 }
-function downloadMachine() {
+async function downloadMachine() {
   if (!state.machineFile) return;
   const name = document.getElementById('profileName')?.value.trim() || state.profileName || 'voice_profile';
-  _download(JSON.stringify(state.machineFile, null, 2), `${_slug(name)}_machine.json`, 'application/json');
+  const content = JSON.stringify(state.machineFile, null, 2);
+  const filename = `${_slug(name)}_machine.json`;
+  await _archiveExport(content, filename, 'application/json');
+  _download(content, filename, 'application/json');
 }
-function downloadHuman() {
+async function downloadHuman() {
   if (!state.humanFile) return;
   const name = document.getElementById('profileName')?.value.trim() || state.profileName || 'voice_profile';
   const text = document.getElementById('humanOutput').innerText;
-  _download(text, `${_slug(name)}_instructions.txt`, 'text/plain');
+  const filename = `${_slug(name)}_instructions.txt`;
+  await _archiveExport(text, filename, 'text/plain');
+  _download(text, filename, 'text/plain');
 }
-function exportAll() {
-  if (state.machineFile) downloadMachine();
-  setTimeout(() => { if (state.humanFile) downloadHuman(); }, 300);
+async function exportAll() {
+  if (state.machineFile) await downloadMachine();
+  if (state.humanFile) await downloadHuman();
+}
+async function _archiveExport(content, filename, type) {
+  if (!CLOUD_OK || !state.user) return;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const path = `${state.user.id}/${timestamp}/${filename}`;
+  const { error } = await sb.storage.from('voice-profile-exports')
+    .upload(path, new Blob([content], { type }), { contentType: type, upsert: false });
+  if (error) toast('Downloaded locally; secure cloud archive failed', 'warn');
 }
 function _download(content, filename, type) {
   const a  = document.createElement('a');
@@ -2580,7 +2479,7 @@ function selectText(el) {
 async function saveProfile() {
   if (!state.machineFile) { toast('Generate a profile first', 'err'); return; }
   if (!state.user) {
-    if (hasPass() || !CLOUD_OK) { _saveProfileLocal(); return; }
+    if (!CLOUD_OK) { _saveProfileLocal(); return; }
     toast('Sign in to save profiles', 'err'); openAuthModal('signin'); return;
   }
 
@@ -2592,7 +2491,6 @@ async function saveProfile() {
     name,
     machine_file:   state.machineFile,
     analysis:       state.analysis,
-    sample_preview: document.getElementById('sampleText').value.trim().slice(0, 500),
     provider:       state.provider
   };
 
@@ -2608,7 +2506,7 @@ async function loadSavedProfilesMeta() {
   if (!list) return;
 
   if (!state.user) {
-    if (hasPass() || !CLOUD_OK) { list.innerHTML = _localProfileItemsHTML(false); return; }
+    if (!CLOUD_OK) { list.innerHTML = _localProfileItemsHTML(false); return; }
     list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◎</div>Sign in to save &amp; load profiles.</div>';
     return;
   }
@@ -2652,13 +2550,10 @@ async function restoreProfile(id) {
   // Restore the provider that was active when the profile was generated
   if (data.provider && ['anthropic','deepseek','openai'].includes(data.provider)) {
     state.provider = data.provider;
-    sessionStorage.setItem('apex_provider', data.provider);
     syncProviderUI();
   }
 
   document.getElementById('profileName').value = state.profileName;
-  document.getElementById('sampleText').value  = String(data.sample_preview || '').slice(0, 500);
-  updateCharCount(document.getElementById('sampleText'));
   goStep(4);
   document.getElementById('generateLoading').classList.add('hidden');
   document.getElementById('outputPanel').classList.remove('hidden');
@@ -2691,7 +2586,7 @@ async function populateLoadModal() {
   if (!list) return;
 
   if (!state.user) {
-    if (hasPass() || !CLOUD_OK) { list.innerHTML = _localProfileItemsHTML(true); return; }
+    if (!CLOUD_OK) { list.innerHTML = _localProfileItemsHTML(true); return; }
     list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">◎</div>Sign in to load saved profiles.</div>';
     return;
   }
@@ -2775,15 +2670,15 @@ function _validateMachineFile(m) {
 
 // ── Retry wrapper ─────────────────────────────────────────────
 // Retries once on transient failures. Never retries credential errors.
-async function _callWithRetry(sys, user, tokens, attempts = 2) {
+async function _callWithRetry(operation, payload, attempts = 2) {
   let lastErr;
   for (let i = 0; i < attempts; i++) {
-    try { return await callClaude(sys, user, tokens); }
+    try { return await callVoiceEngine(operation, payload); }
     catch (e) {
       lastErr = e;
       const msg = (e.message || '').toLowerCase();
       if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized') ||
-          msg.includes('invalid x-api-key') || msg.includes('invalid api key')) throw e;
+          msg.includes('provider is not configured')) throw e;
       if (i < attempts - 1) {
         updateStatus('working', 'RETRYING…');
         await new Promise(r => setTimeout(r, 1500 * (i + 1)));
@@ -2867,19 +2762,7 @@ function toast(msg, type = '') {
 // ══ INIT ════════════════════════════════════════════════════
 
 
-// ══ ACCESS PASS (gift codes + Gumroad lifetime licenses) ══════
-function _getPass() {
-  try { const p = JSON.parse(localStorage.getItem('bndr_pass') || 'null'); return (p && p.type) ? p : null; }
-  catch (_) { return null; }
-}
-function hasPass() { return !!_getPass(); }
-
-async function _hashAccessCode(code) {
-  const data = new TextEncoder().encode(String(code).trim().toUpperCase());
-  const buf  = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
+// ══ ACCOUNT REDEMPTION (gift codes + Gumroad licenses) ═══════
 function openPassModal() {
   closePaywall();
   closeAuthModal();
@@ -2888,8 +2771,7 @@ function openPassModal() {
 }
 function closePassModal() {
   document.getElementById('passModal').classList.add('hidden');
-  // Keep the auth wall intact for signed-out users without a pass
-  if (!state.user && !hasPass() && CLOUD_OK) openAuthModal('signin');
+  if (!state.user && CLOUD_OK) openAuthModal('signin');
 }
 
 async function redeemAccess() {
@@ -2897,64 +2779,34 @@ async function redeemAccess() {
   const btn   = document.getElementById('passRedeemBtn');
   const val   = (input?.value || '').trim();
   if (!val) { toast('Type or paste your code first', 'err'); return; }
+  if (!state.user) {
+    closePassModal();
+    openAuthModal('signin');
+    toast('Sign in before redeeming access', 'warn');
+    return;
+  }
   if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
   try {
-    // 1) Gift codes — checked on this device, nothing leaves the browser
-    let hash = '';
-    try { hash = await _hashAccessCode(val); } catch (_) {}
-    if (hash && GIFT_HASHES.includes(hash)) {
-      _grantPass({ type: 'gift', granted_at: new Date().toISOString() }, 'VIP access unlocked — welcome!');
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw _makeError('VE-AUTH_REQUIRED', 'Sign in before redeeming access');
+    const res = await _fetchWithTimeout(`${SUPABASE_URL}/functions/v1/redeem-access`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: val })
+    }, 25000);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.granted) {
+      toast(data.error || 'That code or license key was not recognized', 'err');
       return;
     }
-    // 2) Gumroad license keys — verified with Gumroad
-    if (GUMROAD.productId) {
-      let data = null;
-      try {
-        const res = await _fetchWithTimeout('https://api.gumroad.com/v2/licenses/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({ product_id: GUMROAD.productId, license_key: val, increment_uses_count: 'false' }).toString()
-        }, 20000);
-        data = await res.json();
-      } catch (_) {
-        toast('Could not reach the license server — check your connection and try again', 'err');
-        return;
-      }
-      if (data && data.success && data.purchase && !data.purchase.refunded && !data.purchase.chargebacked && !data.purchase.disputed) {
-        _grantPass({ type: 'gumroad', key_hint: val.slice(0, 8) + '…', granted_at: new Date().toISOString() }, 'Lifetime license verified — welcome!');
-        return;
-      }
-      toast((data && data.message) || 'That code or license key was not recognized', 'err');
-      return;
-    }
-    toast('That code was not recognized', 'err');
+    closePassModal();
+    if (input) input.value = '';
+    await _loadSubscription();
+    _updateAccountUI();
+    toast('Lifetime access unlocked — welcome!', 'ok');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Unlock'; }
   }
-}
-
-function _grantPass(pass, msg) {
-  try { localStorage.setItem('bndr_pass', JSON.stringify(pass)); }
-  catch (_) { toast('Could not save the pass — this browser is blocking storage', 'err'); return; }
-  document.getElementById('passModal').classList.add('hidden');
-  closeAuthModal();
-  const pi = document.getElementById('passInput');
-  if (pi) pi.value = '';
-  _updateAccountUI();
-  loadSavedProfilesMeta();
-  toast(msg, 'ok');
-  let tourDone = null;
-  try { tourDone = localStorage.getItem('bndr_tour_done'); } catch (_) {}
-  if (!tourDone) setTimeout(startTour, 600);
-}
-
-function removePass() {
-  localStorage.removeItem('bndr_pass');
-  _closeMenu();
-  _updateAccountUI();
-  loadSavedProfilesMeta();
-  toast('Access pass removed');
-  if (!state.user && CLOUD_OK) openAuthModal('signin');
 }
 
 function goGumroad() {
@@ -2969,7 +2821,7 @@ function goGumroad() {
   }
 }
 
-// ══ LOCAL PROFILES (device storage — pass holders & Local Mode) ═
+// ══ LOCAL PROFILES (device storage — offline recovery mode) ═══
 const LOCAL_PROFILES_KEY = 'bndr_profiles';
 function _localProfiles() {
   try { const v = JSON.parse(localStorage.getItem(LOCAL_PROFILES_KEY) || '[]'); return Array.isArray(v) ? v : []; }
@@ -2988,7 +2840,6 @@ function _saveProfileLocal() {
     name,
     machine_file:   state.machineFile,
     analysis:       state.analysis,
-    sample_preview: document.getElementById('sampleText').value.trim().slice(0, 500),
     provider:       state.provider,
     updated_at:     new Date().toISOString()
   });
@@ -3024,12 +2875,9 @@ function _restoreLocalProfile(id) {
   state.humanFile   = buildHumanDoc(state.machineFile);
   if (data.provider && ['anthropic','deepseek','openai'].includes(data.provider)) {
     state.provider = data.provider;
-    sessionStorage.setItem('apex_provider', data.provider);
     syncProviderUI();
   }
   document.getElementById('profileName').value = state.profileName;
-  document.getElementById('sampleText').value  = String(data.sample_preview || '').slice(0, 500);
-  updateCharCount(document.getElementById('sampleText'));
   goStep(4);
   document.getElementById('generateLoading').classList.add('hidden');
   document.getElementById('generateError').classList.add('hidden');
@@ -3055,39 +2903,15 @@ function _isLocalProfileId(id) {
   return /^lp_[a-z0-9]{8,40}$/i.test(String(id || ''));
 }
 
-// ══ LOCAL USAGE GATE (Local Mode fallback — 5 free/day on-device) 
-function _localUsageToday() {
-  try {
-    const rec = JSON.parse(localStorage.getItem('bndr_local_usage') || 'null');
-    const today = new Date().toISOString().slice(0, 10);
-    return (rec && rec.date === today) ? (Number(rec.count) || 0) : 0;
-  } catch (_) { return 0; }
-}
-function _localUsageGate() {
-  const today = new Date().toISOString().slice(0, 10);
-  const count = _localUsageToday();
-  state.dailyLimit = 5;
-  if (count >= 5) {
-    state.usageToday = count;
-    _updateUsageUI();
-    _openPaywall(count, 5);
-    return false;
-  }
-  try { localStorage.setItem('bndr_local_usage', JSON.stringify({ date: today, count: count + 1 })); } catch (_) {}
-  state.usageToday = count + 1;
-  _updateUsageUI();
-  return true;
-}
-
 // ══ GUIDED TOUR ══════════════════════════════════════════════
 const TOUR_STEPS = [
   { title: 'Welcome to VoiceEngine 👋', text: "This tool learns how YOU write, then teaches any AI to write the same way. Here's a quick look around — it takes about a minute." },
   { sel: '#stepsBar', title: 'Four simple steps', text: 'You always move left to right: paste your writing, let the engine read it, choose your rules, and collect your files. Tap any finished step to go back.' },
   { sel: '#sampleText', title: 'Start with your words', text: 'Paste something you wrote yourself — an email, a post, anything. Around 150–600 words works best. Want a demo first? Press “Load Example”.' },
-  { sel: '#tourKeyBtn', title: 'Add your AI key', text: 'The engine uses your own AI account (Anthropic, OpenAI, or DeepSeek) to do the reading. Tap this, paste your key, done. It stays only in this tab — it is never stored anywhere else.' },
+  { sel: '#tourKeyBtn', title: 'Choose your AI provider', text: 'Choose Anthropic, OpenAI, or DeepSeek. Provider credentials remain encrypted in the server environment and never enter your browser.' },
   { sel: '#analyzeBtn', title: 'Press Analyze', text: "When your words are in, press this button. You'll see your “writing DNA” — and you can correct anything it got wrong." },
   { sel: '.bottom-bar', title: 'Save it for later', text: 'Down here you can save a finished voice profile and load it again any time — so you only do this once per voice.' },
-  { title: "That's it!", text: 'At the end you get two files: one to paste into any AI tool, and one written for people. Rerun this tour any time from the ? button up top.' }
+  { title: "That's it!", text: 'At the end you get two files: one for AI tools and one for people. Use Email feedback below for feature ideas or errors. You can replay this tour from the ? button.' }
 ];
 let _tourIdx = 0;
 function startTour() {
@@ -3098,14 +2922,20 @@ function startTour() {
   document.addEventListener('keydown', _tourKeys);
   window.addEventListener('resize', _tourRender);
 }
-function endTour() {
+async function endTour(outcome = 'completed') {
   document.getElementById('tourOverlay').classList.add('hidden');
   document.removeEventListener('keydown', _tourKeys);
   window.removeEventListener('resize', _tourRender);
+  state.tourComplete = true;
   try { localStorage.setItem('bndr_tour_done', '1'); } catch (_) {}
+  if (state.user) {
+    const patch = { user_id: state.user.id };
+    patch[outcome === 'skipped' ? 'tour_skipped_at' : 'tour_completed_at'] = new Date().toISOString();
+    await sb.from('user_preferences').upsert(patch, { onConflict: 'user_id' });
+  }
 }
 function tourNext() {
-  if (_tourIdx >= TOUR_STEPS.length - 1) { endTour(); return; }
+  if (_tourIdx >= TOUR_STEPS.length - 1) { endTour('completed'); return; }
   _tourIdx++;
   _tourRender();
 }
@@ -3130,6 +2960,16 @@ function _tourRender() {
   document.getElementById('tourNextBtn').textContent = _tourIdx === TOUR_STEPS.length - 1 ? 'Start writing →' : 'Next →';
 
   const target = step.sel ? document.querySelector(step.sel) : null;
+  if (step.sel && (!target || target.offsetParent === null)) {
+    if (_tourIdx < TOUR_STEPS.length - 1) {
+      _tourIdx++;
+      _tourRender();
+    } else {
+      endTour('completed');
+    }
+    return;
+  }
+  document.getElementById('tourSupportBtn')?.classList.toggle('hidden', _tourIdx !== TOUR_STEPS.length - 1);
   const vw = window.innerWidth, vh = window.innerHeight;
   if (target && target.offsetParent !== null) {
     target.scrollIntoView({ block: 'center', behavior: 'auto' });
@@ -3158,12 +2998,16 @@ function _tourRender() {
     card.style.left = Math.max(16, (vw - cw) / 2) + 'px';
   }
 }
+function emailTourFeedback() {
+  const address = CFG.SUPPORT_EMAIL || 'bndr.labs@gmail.com';
+  window.location.href = `mailto:${encodeURIComponent(address)}?subject=${encodeURIComponent('BNDR VoiceEngine feedback')}`;
+}
 function _maybeAutoStartTour() {
   let done = null;
   try { done = localStorage.getItem('bndr_tour_done'); } catch (_) {}
-  if (done) return;
+  if (done || state.tourComplete) return;
   // Start only once the user can actually use the app (no auth wall in the way)
-  if (state.user || hasPass() || !CLOUD_OK) setTimeout(startTour, 800);
+  if (state.user || !CLOUD_OK) setTimeout(startTour, 800);
 }
 
 // ══ COOKIE / STORAGE NOTICE ══════════════════════════════════
@@ -3202,6 +3046,9 @@ function _applyPricing() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  try { state.lastError = JSON.parse(sessionStorage.getItem('bndr_last_error') || 'null'); } catch (_) {}
+  // Retire legacy device-only access tokens; entitlements are server-owned.
+  try { localStorage.removeItem('bndr_pass'); } catch (_) {}
   renderFilters();
   updateCharCount(document.getElementById('sampleText'));
   syncProviderUI();
@@ -3217,6 +3064,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (session?.user) {
     state.user = session.user;
     await _loadSubscription();
+    await _loadPreferences();
     await loadSavedProfilesMeta();
     _updateAccountUI();
 
@@ -3243,14 +3091,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   } else {
     _updateAccountUI();
     loadSavedProfilesMeta();
-    if (!CLOUD_OK) toast('Local Mode — cloud is unreachable, but everything still works on this device', 'warn');
-    else if (!hasPass()) openAuthModal('signin');
+    if (!CLOUD_OK) toast('Cloud unavailable — on-device profiles remain accessible; AI requests are paused', 'warn');
+    else openAuthModal('signin');
   }
 
-  // AI key status indicator
-  const activeKey = { anthropic: state.apiKey, deepseek: state.deepseekKey, openai: state.openaiKey }[state.provider];
-  if (activeKey) updateStatus('ready', 'READY');
-  else updateStatus('idle', 'IDLE');
+  updateStatus('ready', 'READY');
 
   // Snapshot Configure-step defaults so Start Over can restore them
   window._cfgDefaults = [];
@@ -3277,14 +3122,16 @@ document.getElementById('paywallModal').addEventListener('click', function(e) { 
 document.getElementById('passModal').addEventListener('click', function(e) { if (e.target === this) closePassModal(); });
 document.getElementById('passInput').addEventListener('keydown', e => { if (e.key === 'Enter') redeemAccess(); });
 document.getElementById('authModal').addEventListener('click', function(e) {
-  // Closable when authenticated, holding an access pass, or in Local Mode
-  if (e.target === this && (state.user || hasPass() || !CLOUD_OK)) closeAuthModal();
+  // Closable when authenticated or in offline recovery mode.
+  if (e.target === this && (state.user || !CLOUD_OK)) closeAuthModal();
 });
 
-// Enter key in AI key inputs
-document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
-document.getElementById('deepseekKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
-document.getElementById('openaiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
+window.addEventListener('error', event => {
+  if (event.error) _recordError(event.error);
+});
+window.addEventListener('unhandledrejection', event => {
+  _recordError(event.reason instanceof Error ? event.reason : _makeError('VE-PROMISE', String(event.reason || 'Unhandled request failure')));
+});
 </script>
 </body>
 </html>

@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#090909">
-<meta name="application-version" content="3.1.0">
+<meta name="application-version" content="3.2.0">
+<link rel="canonical" href="/privacy">
 <meta name="description" content="BNDR VoiceEngine privacy policy — what we store, what we never see, and how your data is handled.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
 <title>Privacy Policy · BNDR VoiceEngine</title>
@@ -45,13 +46,13 @@ footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a
 <main>
   <div class="eyebrow">Legal</div>
   <h1>Privacy Policy</h1>
-  <div class="updated">LAST UPDATED: JULY 14, 2026</div>
+  <div class="updated">LAST UPDATED: JULY 30, 2026</div>
 
-  <p>This policy explains, in plain language, what BNDR VoiceEngine (“the Service”, operated by BNDR LLC) does and does not do with your information. The short version: BNDR does <strong>not store</strong> your writing samples or AI keys.</p>
+  <p>This policy explains, in plain language, what BNDR VoiceEngine (“the Service”, operated by BNDR LLC) does and does not do with your information. The short version: BNDR does <strong>not store</strong> your writing samples, and AI-provider credentials remain server-side.</p>
 
   <div class="box">
     <strong>The one-paragraph summary.</strong>
-    <p style="margin-top:6px;">Anthropic and OpenAI requests travel directly from your browser to those providers. Because DeepSeek does not support the same browser flow, DeepSeek requests pass through an authenticated BNDR relay hosted on Supabase. That relay briefly processes the encrypted-in-transit request, including your key and writing, solely to forward it; our application code does not store or log the request body. API keys live only in your browser tab and vanish when it closes. We store only what's required to run your account: your email, subscription status, a daily usage count, and voice profiles you explicitly save. We run no ads, no third-party trackers, and never sell data.</p>
+    <p style="margin-top:6px;">Provider requests pass through an authenticated BNDR gateway hosted on Supabase. The gateway briefly processes your encrypted-in-transit writing solely to verify access and run the selected provider; application code does not store or log the request body. Provider credentials remain in the server environment and never enter your browser. We store only what's required to run your account: email, entitlement and billing state, usage counts, reports you submit, and profiles or exports you explicitly save. We run no ads, no third-party trackers, and never sell data.</p>
   </div>
 
   <h2>1. What we store (and why)</h2>
@@ -59,20 +60,20 @@ footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a
     <li><strong>Account data</strong> — if you create an account: your email address and authentication records, handled by Supabase (our database and login provider).</li>
     <li><strong>Subscription status</strong> — whether your plan is trialing, active, or canceled, updated by Stripe events. We never see or store your card number; payment details are handled entirely by Stripe.</li>
     <li><strong>Usage counts</strong> — a per-day number of analyses, used to enforce plan limits. Not the content — just the count.</li>
-    <li><strong>Saved voice profiles</strong> — only if you press Save: the profile name, the generated profile files, and up to 500 characters of your sample as a preview. Delete them anytime from within the app.</li>
+    <li><strong>Saved voice profiles and exports</strong> — only if you press Save or Export: the profile name and generated profile files. Writing-sample previews are not retained. Delete saved profiles anytime from within the app.</li>
   </ul>
 
   <h2>2. What we don't retain</h2>
   <ul>
-    <li><strong>Your API keys.</strong> Keys are kept in session storage in your browser tab and are never written to our database. A DeepSeek key crosses the relay transiently with each DeepSeek request; Anthropic and OpenAI keys go directly to those providers.</li>
-    <li><strong>Your writing samples.</strong> Samples are not saved by BNDR. Anthropic and OpenAI receive them directly; the DeepSeek relay forwards and discards them. Your chosen provider's privacy terms apply to its processing.</li>
+    <li><strong>AI-provider credentials.</strong> Provider credentials remain in the server environment and are never delivered to your browser or written into your profile.</li>
+    <li><strong>Your writing samples.</strong> Samples are not saved by BNDR. The authenticated gateway forwards them transiently to the selected provider, whose privacy terms apply to that processing.</li>
     <li><strong>Your payment details.</strong> Checkout happens on Stripe or Gumroad. We receive only a confirmation of the plan status or license validity.</li>
   </ul>
 
   <h2>3. Data stored on your device</h2>
   <p>The Service uses your browser's local storage to make the app work. This is functional storage, not tracking:</p>
   <ul>
-    <li><strong>Session storage</strong> (cleared when the tab closes): your API keys and selected AI provider.</li>
+    <li><strong>Session storage</strong> (cleared when the tab closes): the latest structured error state used for recovery and support.</li>
     <li><strong>Local storage</strong> (persists on your device): your consent acknowledgment, whether you've seen the guided tour, an access pass if you redeem a gift code or lifetime license, on-device voice profiles (for pass holders), and a local daily usage count.</li>
   </ul>
   <p>You can clear all of it at any time through your browser's site-data settings. Nothing breaks — you'd just need to redeem your pass or sign in again.</p>
@@ -86,11 +87,11 @@ footer a { color:var(--dim); margin:0 10px; text-transform:uppercase; } footer a
     <li><strong>Stripe</strong> — subscription payments and billing management.</li>
     <li><strong>Gumroad</strong> — lifetime license sales and license-key verification.</li>
     <li><strong>Google Fonts</strong> — typeface delivery.</li>
-    <li><strong>Your AI provider</strong> (Anthropic, OpenAI, or DeepSeek) — processes the writing you submit, under your own account and their terms.</li>
+    <li><strong>AI providers</strong> (Anthropic, OpenAI, or DeepSeek) — process the writing you submit using server-managed credentials and under their terms.</li>
   </ul>
 
   <h2>6. Data retention and deletion</h2>
-  <p>Saved profiles can be deleted in-app immediately. To delete your account and all associated data, email us and we'll complete the deletion within 30 days. On-device data is yours to clear whenever you like.</p>
+  <p>Saved profiles can be deleted in-app immediately. In-app account deletion cancels any active Stripe subscription, removes all private exports, revokes refresh sessions, deletes the Auth account, and cascades account-owned database rows. BNDR retains only a salted, non-reversible deletion-audit hash for seven years and identifier-free Stripe event receipts for up to 400 days; Stripe and Gumroad retain their own transaction records under their policies and legal obligations. On-device data can be cleared through your browser settings.</p>
 
   <h2>7. Your rights</h2>
   <p>Depending on where you live (including under GDPR and CCPA), you may have rights to access, correct, export, or delete your personal data, and to object to processing. Email us to exercise any of these — we honor them for everyone, regardless of location.</p>
