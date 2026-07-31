@@ -1,26 +1,32 @@
-// BNDR VoiceEngine 3.2.0 — authenticated, entitlement-gated BYOK AI gateway.
-// Provider credentials are accepted only over HTTPS, used once, and never
-// persisted or logged. Deploy with JWT verification disabled; this function
-// validates the user token itself so errors remain structured and portable.
+// Authenticated, entitlement-gated AI gateway. Provider credentials and model
+// selection are server-owned and never enter the browser.
 
-import { createClient } from 'npm:@supabase/supabase-js@2.110.5'
 import { buildForensicRequest, type VoiceOperation } from './forensic.ts'
+import { serverConfigured, userClient } from '../_shared/supabase.ts'
 
 type Provider = 'anthropic' | 'deepseek' | 'openai'
 type Message = { role: 'system' | 'user' | 'assistant'; content: string }
 type GatewayBody = {
   provider: Provider
-  key: string
-  model: string
   max_tokens?: number
   operation: VoiceOperation
   payload: Record<string, unknown>
 }
 
-const MODELS: Record<Provider, Set<string>> = {
-  anthropic: new Set(['claude-sonnet-5']),
-  deepseek: new Set(['deepseek-v4-flash', 'deepseek-v4-pro']),
-  openai: new Set(['gpt-5.6-luna']),
+const DEFAULT_MODELS: Record<Provider, string> = {
+  anthropic: 'claude-sonnet-5',
+  deepseek: 'deepseek-v4-flash',
+  openai: 'gpt-5.6-luna',
+}
+const MODEL_ENV: Record<Provider, string> = {
+  anthropic: 'ANTHROPIC_MODEL',
+  deepseek: 'DEEPSEEK_MODEL',
+  openai: 'OPENAI_MODEL',
+}
+const KEY_ENV: Record<Provider, string> = {
+  anthropic: 'ANTHROPIC_API_KEY',
+  deepseek: 'DEEPSEEK_API_KEY',
+  openai: 'OPENAI_API_KEY',
 }
 const UPSTREAM: Record<Provider, string> = {
   anthropic: 'https://api.anthropic.com/v1/messages',
@@ -66,8 +72,7 @@ function error(req: Request, code: string, message: string, status: number, corr
 function validateBody(value: unknown): GatewayBody | null {
   if (!value || typeof value !== 'object') return null
   const body = value as Partial<GatewayBody>
-  if (!body.provider || !MODELS[body.provider] || !MODELS[body.provider].has(String(body.model))) return null
-  if (typeof body.key !== 'string' || body.key.length < 8 || body.key.length > 512) return null
+  if (!body.provider || !DEFAULT_MODELS[body.provider]) return null
   if (!['analyze', 'compile', 'quality'].includes(String(body.operation))) return null
   if (!body.payload || typeof body.payload !== 'object' || Array.isArray(body.payload)) return null
   if (JSON.stringify(body.payload).length > MAX_MESSAGE_BYTES) return null
@@ -80,6 +85,9 @@ async function callProvider(
 ): Promise<{ response: Response; extract: (data: any) => string }> {
   const maxTokens = Math.min(Math.max(prompt.maxTokens, 100), 8000)
   const messages: Message[] = [{ role: 'user', content: prompt.user }]
+  const key = Deno.env.get(KEY_ENV[body.provider]) || ''
+  const model = Deno.env.get(MODEL_ENV[body.provider]) || DEFAULT_MODELS[body.provider]
+  if (!key) throw new Error('PROVIDER_NOT_CONFIGURED')
 
   if (body.provider === 'anthropic') {
     return {
@@ -87,10 +95,10 @@ async function callProvider(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': body.key,
+          'x-api-key': key,
           'anthropic-version': '2023-06-01',
         },
-        body: JSON.stringify({ model: body.model, max_tokens: maxTokens, system: prompt.system, messages }),
+        body: JSON.stringify({ model, max_tokens: maxTokens, system: prompt.system, messages }),
         signal: AbortSignal.timeout(120_000),
       }),
       extract: data => data?.content?.find((part: any) => part?.type === 'text')?.text || '',
@@ -99,19 +107,19 @@ async function callProvider(
 
   const common = {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${body.key}` },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
     signal: AbortSignal.timeout(120_000),
   } as const
   const providerPayload = body.provider === 'openai'
     ? {
-        model: body.model,
+        model,
         max_completion_tokens: maxTokens,
         reasoning_effort: 'low',
         response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: prompt.system }, ...messages],
       }
     : {
-        model: body.model,
+        model,
         max_tokens: maxTokens,
         stream: false,
         thinking: { type: 'enabled' },
@@ -142,16 +150,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!authHeader.startsWith('Bearer ')) {
     return error(req, 'VE-AUTH_REQUIRED', 'Sign in required', 401, correlationId)
   }
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
-  const publishableKey = Deno.env.get('SUPABASE_ANON_KEY') || ''
-  if (!supabaseUrl || !publishableKey) {
+  if (!serverConfigured()) {
     return error(req, 'VE-SERVER_CONFIG', 'AI gateway is not configured', 503, correlationId)
   }
 
-  const client = createClient(supabaseUrl, publishableKey, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false },
-  })
+  const client = userClient(authHeader)
   const { data: { user }, error: authError } = await client.auth.getUser()
   if (authError || !user) {
     return error(req, 'VE-AUTH_INVALID', 'Session expired; sign in again', 401, correlationId)
@@ -165,6 +168,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   }
   const body = validateBody(parsed)
   if (!body) return error(req, 'VE-BODY_INVALID', 'Invalid AI request', 400, correlationId)
+  if (!Deno.env.get(KEY_ENV[body.provider])) {
+    return error(req, 'VE-PROVIDER_CONFIG', 'Selected AI provider is not configured', 503, correlationId)
+  }
 
   const { data: entitlement, error: gateError } = await client
     .rpc('check_and_increment_usage', { p_user_id: user.id })
@@ -205,6 +211,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     })
   } catch (caught) {
     const message = caught instanceof Error ? caught.message : 'Provider unreachable'
+    if (message === 'PROVIDER_NOT_CONFIGURED') {
+      return error(req, 'VE-PROVIDER_CONFIG', 'Selected AI provider is not configured', 503, correlationId)
+    }
     const timedOut = /timeout|timed out|abort/i.test(message)
     return error(
       req,

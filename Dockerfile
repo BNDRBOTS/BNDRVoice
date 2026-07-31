@@ -5,7 +5,7 @@ FROM nginx:1.27-alpine
 ENV PORT=8080
 ENV NGINX_ENVSUBST_FILTER=^PORT$
 
-# Static multi-page site and vendored visual assets.
+# Railway-served browser client for the Supabase-backed application.
 COPY index.html /usr/share/nginx/html/index.html
 COPY app.html /usr/share/nginx/html/app.html
 COPY privacy.html /usr/share/nginx/html/privacy.html

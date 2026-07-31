@@ -11,9 +11,8 @@ window.BNDR_CONFIG = {
   /* Release marker used by diagnostics and support. */
   APP_VERSION: '3.2.0',
 
-  /* ── 1. SUPABASE (auth, subscriptions, cloud profiles) ────────
-     The legacy anon key remains browser-safe under Row Level Security.
-     New deployments should replace it with an sb_publishable_ key. */
+  /* ── 1. SUPABASE (auth, entitlements, profiles, exports) ──────
+     This must be a publishable key protected by Row Level Security. */
   SUPABASE_URL: 'https://sdokwqjudvxeimbzsnqc.supabase.co',
   SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkb2t3cWp1ZHZ4ZWltYnpzbnFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3ODIzMjEsImV4cCI6MjA4MTM1ODMyMX0.IvsVa0AfizrHkZjBQSYugRS5iXXCPyDRanOmyrMPYIU',
 
@@ -28,32 +27,13 @@ window.BNDR_CONFIG = {
     metered: ''
   },
 
-  /* ── 3. GUMROAD (lifetime license, one-time payment) ──────────
-     buyUrl:    your Gumroad product page, e.g.
-                'https://bndr.gumroad.com/l/voiceengine'
-     productId: the product ID used to verify license keys, from
-                Gumroad → Product → Advanced → product ID (or use
-                the product permalink, e.g. 'voiceengine').
-     Enable "Generate a unique license key per sale" on the
-     Gumroad product. Buyers paste their key into the app's
-     "Redeem access" screen and it verifies automatically.
-     Until both values are set, the Lifetime plan card explains
-     it isn't available yet instead of dead-linking.             */
+  /* ── 3. GUMROAD (public purchase link only) ───────────────────
+     Product verification configuration remains server-side. */
   GUMROAD: {
-    buyUrl:    '', // ← DROP YOUR GUMROAD PRODUCT URL HERE
-    productId: ''  // ← DROP YOUR GUMROAD PRODUCT ID HERE
+    buyUrl: ''
   },
 
-  /* ── 4. AI MODELS ────────────────────────────────────────────
-     Centralized so provider migrations never require editing the
-     application. These IDs were current on July 14, 2026.       */
-  AI_MODELS: {
-    anthropic: 'claude-sonnet-5',
-    openai:    'gpt-5.6-luna',
-    deepseek:  'deepseek-v4-flash'
-  },
-
-  /* ── 5. PRICING (display only — charge amounts are set in
+  /* ── 4. PRICING (display only — charge amounts are set in
          Stripe / Gumroad) ───────────────────────────────────────*/
   PRICING: {
     monthly:  { price: '$19',  period: '/mo',      note: 'Billed monthly' },
@@ -61,6 +41,6 @@ window.BNDR_CONFIG = {
     lifetime: { price: '$99',  period: ' once',    note: 'One payment. Yours forever.' }
   },
 
-  /* ── 6. SUPPORT ───────────────────────────────────────────────*/
+  /* ── 5. SUPPORT ───────────────────────────────────────────────*/
   SUPPORT_EMAIL: 'bndr.labs@gmail.com'
 };

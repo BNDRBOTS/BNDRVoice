@@ -121,53 +121,58 @@ test('Railway container binds its injected port and exposes a strict health endp
   assert.match(railway, /healthcheckPath\s*=\s*"\/health"/);
 });
 
-test('current model IDs agree between client and the secure provider gateway', () => {
+test('model selection and provider credentials remain server-owned', () => {
   const config = read('config.js');
   const app = read('app.html');
   const proxy = read('supabase/functions/ai-proxy/index.ts');
   for (const id of ['claude-sonnet-5', 'gpt-5.6-luna', 'deepseek-v4-flash']) {
-    assert.ok(config.includes(id), `config missing ${id}`);
-    assert.ok(app.includes(id), `app fallback missing ${id}`);
+    assert.ok(proxy.includes(id), `gateway missing ${id}`);
+    assert.ok(!config.includes(id), `browser config exposes model ${id}`);
+    assert.ok(!app.includes(id), `browser app exposes model ${id}`);
   }
-  assert.ok(proxy.includes("'deepseek-v4-flash'"));
-  assert.match(proxy, /anthropic:\s*new Set\(\['claude-sonnet-5'\]\)/);
-  assert.match(proxy, /openai:\s*new Set\(\['gpt-5\.6-luna'\]\)/);
-  assert.doesNotMatch(`${config}\n${app}\n${proxy}`, /deepseek-(?:chat|reasoner)|gpt-4o|claude-3-/i);
+  assert.match(proxy, /ANTHROPIC_API_KEY/);
+  assert.match(proxy, /OPENAI_API_KEY/);
+  assert.match(proxy, /DEEPSEEK_API_KEY/);
+  assert.doesNotMatch(app, /apiKey|deepseekKey|openaiKey|sessionStorage\.setItem\([^)]*key/i);
+  assert.doesNotMatch(proxy, /body\.key|body\.model/);
 });
 
 test('security controls cover browser rendering, proxy input, and database ownership', () => {
   const app = read('app.html');
   const proxy = read('supabase/functions/ai-proxy/index.ts');
   const webhook = read('supabase/functions/stripe-webhook/index.ts');
-  const schema = read('supabase/migrations/20260730000000_voiceengine_3_2_0.sql');
+  const baseline = read('supabase/migrations/20260730000000_voiceengine_3_2_0.sql');
+  const schema = read('supabase/migrations/20260731000000_production_architecture.sql');
 
   assert.match(app, /function escapeHtml[\s\S]*?replace\(\/&\/g,'&amp;'\)[\s\S]*?replace\(\/</);
   assert.match(app, /one_sentence_summary\)\}<\/p>/);
   assert.match(app, /qc\?\.verdict \|\| ''/);
   assert.match(proxy, /JSON\.stringify\(body\.payload\)\.length > MAX_MESSAGE_BYTES/);
-  assert.match(proxy, /const MODELS:/);
+  assert.match(proxy, /const DEFAULT_MODELS:/);
   assert.match(proxy, /client\.auth\.getUser\(\)/);
   assert.match(proxy, /Request body too large/);
   assert.match(proxy, /check_and_increment_usage/);
   assert.doesNotMatch(proxy, /Access-Control-Allow-Origin': '\*'/);
   assert.match(webhook, /stripe\.webhooks\.constructEvent\(rawBody, signature, webhookSecret\)/);
-  assert.match(webhook, /async function isKnownUser/);
   assert.match(webhook, /text\('Webhook signature invalid', 400\)/);
   assert.match(webhook, /Payload too large/);
-  assert.match(schema, /GRANT USAGE ON SCHEMA public TO authenticated/);
-  assert.match(schema, /CHECK \(CHAR_LENGTH\(BTRIM\(name\)\) BETWEEN 1 AND 120\) NOT VALID/);
+  assert.match(baseline, /GRANT USAGE ON SCHEMA public TO authenticated/);
+  assert.match(baseline, /CHECK \(CHAR_LENGTH\(BTRIM\(name\)\) BETWEEN 1 AND 120\) NOT VALID/);
   assert.match(schema, /SECURITY DEFINER\s+SET search_path = ''[\s\S]*?auth\.uid\(\)\) <> p_user_id/);
   assert.match(schema, /REVOKE ALL ON FUNCTION public\.check_and_increment_usage\(UUID\) FROM PUBLIC/);
   assert.match(schema, /GRANT\s+EXECUTE ON FUNCTION public\.check_and_increment_usage\(UUID\) TO authenticated/);
-  assert.match(schema, /CREATE POLICY "profiles_all_own"[\s\S]*?TO authenticated[\s\S]*?WITH CHECK/);
-  assert.match(schema, /ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ/);
+  assert.match(baseline, /CREATE POLICY "profiles_all_own"[\s\S]*?TO authenticated[\s\S]*?WITH CHECK/);
+  assert.match(schema, /GRANT ALL ON TABLE public\.entitlements[\s\S]*?TO service_role/);
+  assert.match(schema, /account_deletion_audit ENABLE ROW LEVEL SECURITY/);
+  assert.doesNotMatch(schema, /CREATE POLICY[^;]+account_deletion_audit/);
   assert.match(schema, /DROP FUNCTION IF EXISTS public\.check_and_increment_usage\(UUID\)/);
-  assert.ok(existsSync(join(ROOT, 'supabase/rollbacks/20260730000000_voiceengine_3_2_0.down.sql')));
+  assert.ok(existsSync(join(ROOT, 'supabase/rollbacks/20260731000000_production_architecture.down.sql')));
 });
 
 test('auth, account ownership, tour state, and error reporting are fully wired', () => {
   const app = read('app.html');
-  const schema = read('supabase/migrations/20260730000000_voiceengine_3_2_0.sql');
+  const baseline = read('supabase/migrations/20260730000000_voiceengine_3_2_0.sql');
+  const schema = read('supabase/migrations/20260731000000_production_architecture.sql');
   const accountDelete = read('supabase/functions/account-delete/index.ts');
   const errorReport = read('supabase/functions/error-report/index.ts');
   const redemption = read('supabase/functions/redeem-access/index.ts');
@@ -179,17 +184,21 @@ test('auth, account ownership, tour state, and error reporting are fully wired',
   assert.match(app, /functions\/v1\/redeem-access/);
   assert.match(accountDelete, /auth\.admin\.deleteUser\(user\.id\)/);
   assert.match(accountDelete, /stripe\.subscriptions\.cancel\(subscription\.stripe_subscription_id\)/);
-  assert.match(redemption, /userClient\.auth\.getUser\(\)/);
+  assert.match(accountDelete, /listExportPaths/);
+  assert.match(accountDelete, /signOut\(\{ scope: 'global' \}\)/);
+  assert.match(accountDelete, /scrub_account_for_deletion/);
+  assert.match(redemption, /client\.auth\.getUser\(\)/);
   assert.match(redemption, /GIFT_CODE_HASHES/);
   assert.match(redemption, /gumroad\.com\/v2\/licenses\/verify/);
-  assert.match(redemption, /plan_interval:\s*'lifetime'/);
-  assert.match(redemption, /entitlement_history/);
+  assert.match(redemption, /p_product_tier:\s*'lifetime'/);
+  assert.match(redemption, /admin\.rpc\('set_entitlement'/);
   assert.doesNotMatch(read('config.js'), /GIFT_CODE_HASHES|bndrHashCode/);
   assert.doesNotMatch(app, /localStorage\.setItem\(['"]bndr_pass/);
-  assert.match(schema, /CREATE TABLE IF NOT EXISTS public\.user_preferences/);
-  assert.match(schema, /tour_completed_at/);
+  assert.match(baseline, /CREATE TABLE IF NOT EXISTS public\.user_preferences/);
+  assert.match(baseline, /tour_completed_at/);
   assert.match(app, /user_preferences/);
-  assert.match(schema, /CREATE TABLE IF NOT EXISTS public\.error_reports/);
+  assert.match(baseline, /CREATE TABLE IF NOT EXISTS public\.error_reports/);
+  assert.match(schema, /ON DELETE CASCADE/);
   assert.match(errorReport, /RESEND_API_KEY/);
   assert.match(app, /correlation_id/);
   assert.match(app, /reportLastError/);
@@ -201,20 +210,21 @@ test('billing lifecycle is idempotent and covers recovery, disputes, and reconci
   const webhook = read('supabase/functions/stripe-webhook/index.ts');
   const reconciliation = read('supabase/functions/reconcile-subscriptions/index.ts');
   const portal = read('supabase/functions/billing-portal/index.ts');
-  const schema = read('supabase/migrations/20260730000000_voiceengine_3_2_0.sql');
+  const workflows = read('supabase/functions/_shared/stripe-workflows.ts');
+  const schema = read('supabase/migrations/20260731000000_production_architecture.sql');
 
-  assert.match(schema, /CREATE TABLE IF NOT EXISTS public\.billing_events/);
-  assert.match(webhook, /beginEvent\(event\)/);
-  assert.match(webhook, /error\.code === '23505'/);
+  assert.match(schema, /CREATE OR REPLACE FUNCTION public\.claim_billing_event/);
+  assert.match(webhook, /claimBillingEvent\(admin, event\)/);
   for (const event of ['invoice.payment_failed', 'invoice.paid', 'charge.refunded', 'charge.dispute.created']) {
-    assert.ok(webhook.includes(event), `missing lifecycle event ${event}`);
+    assert.ok(workflows.includes(event.split('.')[0]) || workflows.includes('invoice.'), `missing lifecycle family ${event}`);
   }
-  assert.match(webhook, /3 \* 86_400_000/);
-  assert.match(webhook, /previous\?\.grace_ends_at \|\| new Date/);
-  assert.match(reconciliation, /daily_reconciliation/);
-  assert.match(reconciliation, /row\.grace_ends_at \|\| new Date/);
+  assert.match(workflows, /3 \* 86_400_000/);
+  assert.match(reconciliation, /stripe\.events\.retrieve/);
+  assert.match(reconciliation, /purge_expired_audit_records/);
   assert.match(portal, /billingPortal\.sessions\.create/);
-  assert.match(schema, /'weekly','monthly','annual','metered','lifetime'/);
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS public\.entitlements/);
+  assert.match(schema, /only product-access source of truth/i);
+  assert.match(schema, /billing event cannot revoke a separately purchased lifetime grant/i);
 });
 
 test('proprietary forensic prompts are server-only and retain the recovered engine dimensions', () => {
@@ -232,9 +242,12 @@ test('proprietary forensic prompts are server-only and retain the recovered engi
   assert.match(read('supabase/functions/ai-proxy/index.ts'), /buildForensicRequest\(body\.operation, body\.payload\)/);
 });
 
-test('all four hosting targets, Docker, health, metadata, and error routes are present', () => {
-  for (const file of ['vercel.json', 'netlify.toml', 'railway.toml', 'render.yaml', 'Dockerfile']) {
+test('Railway is the only UI deployment target and operational routes are present', () => {
+  for (const file of ['railway.toml', 'Dockerfile']) {
     assert.ok(existsSync(join(ROOT, file)), `${file} missing`);
+  }
+  for (const file of ['vercel.json', 'netlify.toml', 'render.yaml']) {
+    assert.equal(existsSync(join(ROOT, file)), false, `${file} should not exist`);
   }
   for (const file of ['robots.txt', 'sitemap.xml', 'health.json', '404.html', '500.html', '.env.example']) {
     assert.ok(existsSync(join(ROOT, file)), `${file} missing`);

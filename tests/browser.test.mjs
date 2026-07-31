@@ -114,10 +114,11 @@ async function addDeterministicEnvironment(context) {
         const user = { id: '11111111-1111-4111-8111-111111111111', email: 'test@example.com' };
         const session = { access_token: 'test-access-token', user };
         const profiles = [];
-        const subscription = {
-          user_id: user.id, status: 'trial', plan_interval: null,
-          trial_ends_at: new Date(Date.now() + 6 * 86400000).toISOString(),
-          current_period_end: null, grace_ends_at: null, cancel_at_period_end: false
+        const entitlement = {
+          user_id: user.id, status: 'trial', product_tier: 'trial',
+          source: 'signup', daily_limit: 5,
+          valid_until: new Date(Date.now() + 6 * 86400000).toISOString(),
+          grace_until: null
         };
         function builder(table) {
           const query = { action: 'select', payload: null, filters: {}, single: false };
@@ -136,7 +137,7 @@ async function addDeterministicEnvironment(context) {
             catch(reject) { return run().catch(reject); }
           };
           async function run() {
-            if (table === 'subscriptions') return { data: subscription, error: null };
+            if (table === 'entitlements') return { data: entitlement, error: null };
             if (table === 'usage_tracking') return { data: { request_count: 0 }, error: null };
             if (table === 'user_preferences') {
               return { data: query.action === 'select' ? null : query.payload, error: null };
@@ -173,6 +174,11 @@ async function addDeterministicEnvironment(context) {
             return {
               from: builder,
               rpc: async () => ({ data: [{ allowed: true, current_count: 1, daily_limit: 5 }], error: null }),
+              storage: {
+                from: () => ({
+                  upload: async () => ({ data: { path: 'archived' }, error: null })
+                })
+              },
               auth: {
                 getSession: async () => ({ data: { session }, error: null }),
                 getUser: async () => ({ data: { user }, error: null }),
@@ -199,11 +205,13 @@ async function addDeterministicEnvironment(context) {
   await context.addInitScript(({ analysis, profile, quality }) => {
     localStorage.setItem('bndr_consent', new Date().toISOString());
     localStorage.setItem('bndr_tour_done', '1');
+    window.__bndrAiRequests = [];
     const nativeFetch = window.fetch.bind(window);
     window.fetch = async (input, init = {}) => {
       const url = String(input);
       if (url.endsWith('/functions/v1/ai-proxy')) {
         const request = JSON.parse(String(init.body || '{}'));
+        window.__bndrAiRequests.push(request);
         let fixture = analysis;
         if (request.operation === 'compile') fixture = profile;
         if (request.operation === 'quality') fixture = quality;
@@ -336,12 +344,16 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
     await page.getByRole('button', { name: 'Load Example' }).click();
     assert.ok((await page.locator('#sampleText').inputValue()).split(/\s+/).length >= 50);
     await page.locator('#tourKeyBtn').click();
-    await page.locator('#apiKeyInput').fill('sk-test-browser-verification');
-    await page.getByRole('button', { name: /Save & Continue/ }).click();
+    await page.getByRole('button', { name: /OpenAI/ }).click();
+    await page.getByRole('button', { name: /Use This Provider/ }).click();
     await page.locator('#analyzeBtn').click();
     await page.locator('#analysisOutput:not(.hidden)').waitFor();
     assert.match(await page.locator('#analysisSummary').innerText(), /Sharp, specific/);
     assert.equal(await page.evaluate(() => window.__bndrXss === 1), false);
+    assert.equal(await page.evaluate(() => {
+      const request = window.__bndrAiRequests[0];
+      return request.provider === 'openai' && !('key' in request) && !('model' in request);
+    }), true);
 
     await page.getByRole('button', { name: /Configure Profile/ }).click();
     await page.locator('#profileName').fill('Sharp Test Voice');

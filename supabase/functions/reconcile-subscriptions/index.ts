@@ -1,66 +1,78 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.110.5'
 import Stripe from 'npm:stripe@14.21.0'
+import {
+  claimBillingEvent,
+  finalizeBillingEvent,
+  processStripeEvent,
+  syncStripeSubscription,
+} from '../_shared/stripe-workflows.ts'
+import { adminClient, serverConfigured } from '../_shared/supabase.ts'
 
 Deno.serve(async req => {
+  if (req.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 })
   const expected = Deno.env.get('RECONCILE_TOKEN') || ''
   if (!expected) return Response.json({ error: 'Reconciliation is not configured' }, { status: 503 })
   if (req.headers.get('authorization') !== `Bearer ${expected}`) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
-  const url = Deno.env.get('SUPABASE_URL') || ''
-  const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
   const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || ''
-  if (!url || !service || !stripeKey) {
+  if (!serverConfigured(true) || !stripeKey) {
     return Response.json({ error: 'Server configuration incomplete' }, { status: 503 })
   }
-  const admin = createClient(url, service, { auth: { persistSession: false } })
+
+  const admin = adminClient()
   const stripe = new Stripe(stripeKey, {
     apiVersion: '2023-10-16',
     httpClient: Stripe.createFetchHttpClient(),
   })
-  const { data: rows, error } = await admin.from('subscriptions')
-    .select('user_id,stripe_subscription_id,status,grace_ends_at')
-    .not('stripe_subscription_id', 'is', null)
-    .limit(500)
-  if (error) return Response.json({ error: error.message }, { status: 500 })
-
+  let checked = 0
   let changed = 0
-  for (const row of rows || []) {
-    const subscription = await stripe.subscriptions.retrieve(row.stripe_subscription_id)
-    const nextStatus = subscription.status === 'active' || subscription.status === 'trialing'
-      ? 'active'
-      : subscription.status === 'past_due' || subscription.status === 'unpaid'
-        ? 'grace'
-        : subscription.status === 'paused' ? 'paused'
-          : subscription.status === 'canceled' ? 'canceled' : 'expired'
-    const item = subscription.items.data[0]
-    const interval = item?.price?.recurring?.usage_type === 'metered' ? 'metered'
-      : item?.price?.recurring?.interval === 'week' ? 'weekly'
-        : item?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly'
-    const patch = {
-      status: nextStatus,
-      plan_interval: interval,
-      price_id: item?.price?.id || null,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      grace_ends_at: nextStatus === 'grace'
-        ? row.grace_ends_at || new Date(Date.now() + 3 * 86_400_000).toISOString()
-        : null,
-      last_reconciled_at: new Date().toISOString(),
+  let failed = 0
+  for (let from = 0; ; from += 200) {
+    const { data: rows, error } = await admin.from('subscriptions')
+      .select('user_id,stripe_subscription_id,status')
+      .not('stripe_subscription_id', 'is', null)
+      .order('user_id')
+      .range(from, from + 199)
+    if (error) return Response.json({ error: error.message }, { status: 500 })
+    for (const row of rows || []) {
+      checked += 1
+      try {
+        const subscription = await stripe.subscriptions.retrieve(row.stripe_subscription_id)
+        await syncStripeSubscription(admin, stripe, subscription, 'scheduled_reconciliation', row.user_id)
+        const next = ['active', 'trialing'].includes(subscription.status) ? 'active'
+          : ['past_due', 'unpaid'].includes(subscription.status) ? 'grace'
+            : subscription.status === 'paused' ? 'paused'
+              : subscription.status === 'canceled' ? 'canceled' : 'expired'
+        if (next !== row.status) changed += 1
+      } catch {
+        failed += 1
+      }
     }
-    const { error: updateError } = await admin.from('subscriptions')
-      .update(patch).eq('user_id', row.user_id)
-    if (!updateError && row.status !== nextStatus) {
-      changed += 1
-      await admin.from('entitlement_history').insert({
-        user_id: row.user_id,
-        from_status: row.status,
-        to_status: nextStatus,
-        reason: 'daily_reconciliation',
-        metadata: { subscription_id: row.stripe_subscription_id },
-      })
+    if ((rows || []).length < 200) break
+  }
+
+  let retried = 0
+  const retryBefore = new Date().toISOString()
+  const staleBefore = new Date(Date.now() - 30 * 60_000).toISOString()
+  const { data: retryRows } = await admin.from('billing_events')
+    .select('stripe_event_id')
+    .or(`and(processing_state.eq.failed,next_attempt_at.lte.${retryBefore}),and(processing_state.eq.processing,claimed_at.lte.${staleBefore})`)
+    .order('received_at')
+    .limit(100)
+  for (const row of retryRows || []) {
+    try {
+      const event = await stripe.events.retrieve(row.stripe_event_id)
+      if (!(await claimBillingEvent(admin, event))) continue
+      const handled = await processStripeEvent(admin, stripe, event)
+      await finalizeBillingEvent(admin, event.id, handled ? 'processed' : 'ignored')
+      retried += 1
+    } catch (caught) {
+      failed += 1
+      const message = caught instanceof Error ? caught.message : String(caught)
+      await finalizeBillingEvent(admin, row.stripe_event_id, 'failed', message).catch(() => undefined)
     }
   }
-  return Response.json({ checked: rows?.length || 0, changed })
+
+  const { error: purgeError } = await admin.rpc('purge_expired_audit_records')
+  return Response.json({ checked, changed, retried, failed, audit_purged: !purgeError })
 })

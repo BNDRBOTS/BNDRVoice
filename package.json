@@ -2,7 +2,7 @@
   "name": "bndr-voiceengine",
   "version": "3.2.0",
   "private": true,
-  "description": "Verification suite for the BNDR VoiceEngine static application",
+  "description": "Verification and release suite for the full-stack BNDR VoiceEngine",
   "scripts": {
     "preview": "node tests/server.mjs",
     "build": "npm run test:contracts && npm run test:html",

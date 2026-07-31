@@ -1,11 +1,11 @@
 # BNDR VoiceEngine deployment
 
-## 1. Supabase
+## 1. Supabase backend
 
-Confirm the intended project ref is `sdokwqjudvxeimbzsnqc`.
+Link the intended Supabase project, then apply both forward migrations in order:
 
 ```bash
-supabase link --project-ref sdokwqjudvxeimbzsnqc
+supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 supabase secrets set --env-file .env.production
 supabase functions deploy ai-proxy
@@ -17,16 +17,14 @@ supabase functions deploy reconcile-subscriptions
 supabase functions deploy redeem-access
 ```
 
-Required secrets are listed in `.env.example`. Configure a daily authenticated request to `reconcile-subscriptions` using the same `RECONCILE_TOKEN`.
-
-The forward migration is `supabase/migrations/20260730000000_voiceengine_3_2_0.sql`. Its manual structural rollback is `supabase/rollbacks/20260730000000_voiceengine_3_2_0.down.sql`; export production data before rollback because 3.2.0-only records and intentionally erased legacy sample previews are not reconstructible.
+Required server secrets are listed in `.env.example`. Schedule one authenticated `POST` to `reconcile-subscriptions` daily using `RECONCILE_TOKEN`. The job reconciles every Stripe subscription, retries failed or abandoned webhook events, and purges expired audit receipts.
 
 In Supabase Auth:
 
-1. Set the production site URL and add every production/preview redirect URL.
-2. Keep email confirmation enabled.
-3. Configure SMTP for production delivery.
-4. Confirm leaked-password protection and rate limits.
+1. Set the production site URL and explicit production redirect URLs.
+2. Keep email confirmation enabled and configure production SMTP.
+3. Enable leaked-password protection and review Auth rate limits.
+4. Confirm the browser uses only the project publishable key.
 
 In Stripe, send these events to `/functions/v1/stripe-webhook`:
 
@@ -41,27 +39,21 @@ In Stripe, send these events to `/functions/v1/stripe-webhook`:
 - `charge.dispute.created`
 - `charge.dispute.closed`
 
-## 2. Static hosts
+## 2. Railway UI
 
-The same source tree is ready for all required targets:
+Railway is the production UI target. It builds `Dockerfile` using `railway.toml`, serves `/health`, preserves 404 responses, and emits `X-BNDR-Release: 3.2.0`. Configure `config.js` with only the Supabase URL and publishable key before deployment.
 
-| Target | Contract |
-| --- | --- |
-| Vercel | `vercel.json` |
-| Netlify | `netlify.toml` |
-| Railway | `railway.toml` + `Dockerfile` |
-| Render | `render.yaml` + `Dockerfile` |
+## 3. Required acceptance
 
-Each target must serve `/health`, preserve 404 status for missing assets, and expose release header `X-BNDR-Release: 3.2.0`.
-
-## 3. Post-deploy acceptance
-
-1. Create and confirm an account.
-2. Test password sign-in, magic link, reset, logout, and session recovery.
-3. Complete one analysis, one profile compile, one quality check, save/reload/export.
-4. Complete a Stripe test checkout and verify the entitlement transition.
-5. Replay the same webhook event and confirm it is marked duplicate.
+1. Create and confirm an account; test password, magic link, reset, recovery, and logout.
+2. Complete analysis, compilation, quality check, profile save/reload, and both exports.
+3. Verify the browser sends no provider secret or model override.
+4. Complete Stripe checkout and validate subscription and entitlement rows independently.
+5. Replay a webhook; simulate failed/stale processing; run reconciliation.
 6. Simulate payment failure, recovery, cancellation, refund, and dispute.
-7. Submit a structured error report and verify its correlation ID.
-8. Delete the test account and verify Auth, database rows, and private exports are gone.
-9. Redeem a test gift code and a Gumroad test license; verify each grants one account-owned lifetime entitlement.
+7. Redeem one gift and one Gumroad test code; ensure each source reference is single-account.
+8. Submit an error report and verify optional Resend delivery.
+9. Delete the test account and verify Auth, database rows, and every nested Storage object are gone.
+10. Verify only the salted deletion audit and retention-limited billing receipt remain.
+
+Rollback files are under `supabase/rollbacks`. Export production data first; privacy-driven scrubbing is intentionally irreversible.

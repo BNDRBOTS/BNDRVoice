@@ -1,5 +1,5 @@
-import { createClient } from 'npm:@supabase/supabase-js@2.110.5'
 import Stripe from 'npm:stripe@14.21.0'
+import { serverConfigured, userClient } from '../_shared/supabase.ts'
 
 const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://voice.bndr.bot'
 const cors = {
@@ -14,16 +14,11 @@ Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
   if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405)
 
-  const url = Deno.env.get('SUPABASE_URL') || ''
-  const anon = Deno.env.get('SUPABASE_ANON_KEY') || ''
   const stripeKey = Deno.env.get('STRIPE_SECRET_KEY') || ''
   const authHeader = req.headers.get('authorization') || ''
-  if (!url || !anon || !stripeKey) return reply({ error: 'Billing is not configured' }, 503)
+  if (!serverConfigured() || !stripeKey) return reply({ error: 'Billing is not configured' }, 503)
   if (!authHeader.startsWith('Bearer ')) return reply({ error: 'Unauthorized' }, 401)
-  const client = createClient(url, anon, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false },
-  })
+  const client = userClient(authHeader)
   const { data: { user }, error: authError } = await client.auth.getUser()
   if (authError || !user) return reply({ error: 'Unauthorized' }, 401)
   const { data: subscription } = await client.from('subscriptions')

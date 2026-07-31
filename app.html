@@ -597,39 +597,27 @@ textarea, input, select { font-family:var(--font-d); }
   </div>
 </div>
 
-<!-- ══ API KEY MODAL ══════════════════════════════════════════ -->
+<!-- ══ AI PROVIDER MODAL ══════════════════════════════════════ -->
 <div class="modal-overlay hidden" id="keyModal">
   <div class="modal">
     <div class="section-eyebrow">AI Provider</div>
-    <div class="modal-title" style="margin-bottom:16px;">Configure Keys</div>
+    <div class="modal-title" style="margin-bottom:16px;">Choose the analysis engine</div>
     <div class="provider-tabs">
       <button type="button" class="provider-tab active" id="provTabAnthropic" onclick="switchProviderTab('anthropic')">◈ Anthropic</button>
       <button type="button" class="provider-tab" id="provTabDeepseek" onclick="switchProviderTab('deepseek')">◈ DeepSeek</button>
       <button type="button" class="provider-tab" id="provTabOpenai" onclick="switchProviderTab('openai')">◈ OpenAI</button>
     </div>
-    <!-- Anthropic panel -->
     <div id="provPanelAnthropic">
-      <div class="modal-sub">Claude requests use BNDR's authenticated, entitlement-gated HTTPS gateway. Your key stays in this tab and is forwarded only for the active request; it is never stored by BNDR.</div>
-      <label class="modal-label" for="apiKeyInput">Anthropic API Key</label>
-      <input type="password" class="modal-input" id="apiKeyInput" placeholder="sk-ant-api03-…" autocomplete="new-password">
-      <div class="modal-note">Get your key at console.anthropic.com → API Keys. Usage is billed to your Anthropic account.</div>
+      <div class="modal-sub">Claude runs through BNDR's authenticated Supabase gateway. Provider credentials remain server-side and are never sent to the browser.</div>
     </div>
-    <!-- DeepSeek panel -->
     <div id="provPanelDeepseek" class="hidden">
-      <div class="modal-sub">DeepSeek requests use BNDR's authenticated, entitlement-gated HTTPS gateway. Your key and sample are forwarded transiently and are never stored by BNDR.</div>
-      <label class="modal-label" for="deepseekKeyInput">DeepSeek API Key</label>
-      <input type="password" class="modal-input" id="deepseekKeyInput" placeholder="sk-…" autocomplete="new-password">
-      <div class="modal-note">Get your key at platform.deepseek.com → API Keys. Calls are routed through the BNDR relay; your provider usage is billed to you.</div>
+      <div class="modal-sub">DeepSeek runs through BNDR's authenticated Supabase gateway. Provider credentials remain server-side and are never sent to the browser.</div>
     </div>
-    <!-- OpenAI panel -->
     <div id="provPanelOpenai" class="hidden">
-      <div class="modal-sub">OpenAI requests use BNDR's authenticated, entitlement-gated HTTPS gateway. Your key stays in this tab and clears when you close it.</div>
-      <label class="modal-label" for="openaiKeyInput">OpenAI API Key</label>
-      <input type="password" class="modal-input" id="openaiKeyInput" placeholder="sk-…" autocomplete="new-password">
-      <div class="modal-note">Get your key at platform.openai.com → API Keys. Usage is billed to your OpenAI account.</div>
+      <div class="modal-sub">OpenAI runs through BNDR's authenticated Supabase gateway. Provider credentials remain server-side and are never sent to the browser.</div>
     </div>
     <div class="modal-actions" style="margin-top:20px;">
-      <button type="button" class="btn btn-primary" onclick="saveApiKey()">Save &amp; Continue</button>
+      <button type="button" class="btn btn-primary" onclick="saveProvider()">Use This Provider</button>
       <button type="button" class="btn btn-ghost" onclick="closeKeyModal()">Cancel</button>
     </div>
   </div>
@@ -745,8 +733,8 @@ textarea, input, select { font-family:var(--font-d); }
       </div>
       <!-- Usage counter (shown when logged in) -->
       <div class="usage-pill hidden" id="usagePill">–/– left</div>
-      <!-- AI Key button -->
-      <button type="button" class="btn-key" id="tourKeyBtn" onclick="openKeyModal()" title="Configure AI Key">⌘ KEY</button>
+      <!-- AI provider button -->
+      <button type="button" class="btn-key" id="tourKeyBtn" onclick="openKeyModal()" title="Choose AI provider">◈ AI</button>
       <!-- Help / guided tour -->
       <button type="button" class="btn-key btn-help" onclick="startTour()" title="Show me around" aria-label="Open the guided tour">?</button>
       <!-- Sign In (shown when logged out) -->
@@ -1080,7 +1068,7 @@ textarea, input, select { font-family:var(--font-d); }
 <!-- ══ BOTTOM BAR ═════════════════════════════════════════════ -->
 <div class="bottom-bar">
   <div class="bottom-bar-left">
-    <button type="button" class="btn btn-ghost btn-sm" onclick="openKeyModal()">⌘ AI Key</button>
+    <button type="button" class="btn btn-ghost btn-sm" onclick="openKeyModal()">◈ AI</button>
     <button type="button" class="btn btn-ghost btn-sm" onclick="openLoadModal()">↑ Load Profile</button>
     <span class="saved-indicator" id="savedIndicator">✓ Saved</span>
   </div>
@@ -1111,12 +1099,7 @@ const CFG          = window.BNDR_CONFIG || {};
 const SUPABASE_URL = CFG.SUPABASE_URL || '';
 const SUPABASE_ANON = CFG.SUPABASE_ANON_KEY || '';
 const STRIPE   = Object.assign({ monthly:'', annual:'', portal:'' }, CFG.STRIPE || {});
-const GUMROAD  = Object.assign({ buyUrl:'', productId:'' }, CFG.GUMROAD || {});
-const AI_MODELS = Object.assign({
-  anthropic: 'claude-sonnet-5',
-  openai:    'gpt-5.6-luna',
-  deepseek:  'deepseek-v4-flash'
-}, CFG.AI_MODELS || {});
+const GUMROAD  = Object.assign({ buyUrl:'' }, CFG.GUMROAD || {});
 
 function _isHttpsUrl(value) {
   try { return new URL(String(value || '')).protocol === 'https:'; }
@@ -1152,6 +1135,7 @@ function _offlineStub() {
   return {
     from: () => builder(),
     rpc:  result,
+    storage: { from: () => ({ upload: result }) },
     auth: {
       getSession: async () => ({ data: { session: null } }),
       getUser: async () => ({ data: { user: null }, error: err }),
@@ -1166,25 +1150,10 @@ function _offlineStub() {
   };
 }
 
-// Intended Supabase Edge Function URL for Stripe webhook:
-// https://sdokwqjudvxeimbzsnqc.supabase.co/functions/v1/stripe-webhook
-// Required secrets to add in Supabase Dashboard → Edge Functions → stripe-webhook → Secrets:
-//   STRIPE_SECRET_KEY      = sk_live_...
-//   STRIPE_WEBHOOK_SECRET  = whsec_...  (from Stripe Dashboard → Webhooks)
-// Required Stripe events to subscribe:
-//   checkout.session.completed
-//   customer.subscription.created
-//   customer.subscription.updated
-//   customer.subscription.deleted
-//   invoice.payment_failed
-
 // ══ STATE ════════════════════════════════════════════════════
 const state = {
   currentStep: 1,
-  apiKey:      sessionStorage.getItem('apex_key') || '',
-  deepseekKey: sessionStorage.getItem('apex_ds_key') || '',
-  openaiKey:   sessionStorage.getItem('apex_oai_key') || '',
-  provider:    sessionStorage.getItem('apex_provider') || 'anthropic',
+  provider:    'anthropic',
   analysis:    null,
   machineFile: null,
   humanFile:   null,
@@ -1484,12 +1453,12 @@ sb.auth.onAuthStateChange(async (event, session) => {
   }
 });
 
-// ══ SUBSCRIPTION ═════════════════════════════════════════════
+// ══ ENTITLEMENT SOURCE OF TRUTH ══════════════════════════════
 
 async function _loadSubscription() {
   if (!state.user) return;
   const { data } = await sb
-    .from('subscriptions')
+    .from('entitlements')
     .select('*')
     .eq('user_id', state.user.id)
     .maybeSingle();
@@ -1499,11 +1468,13 @@ async function _loadSubscription() {
   if (!data) {
     state.dailyLimit = 0;
   } else if (data.status === 'active') {
-    state.dailyLimit = data.plan_interval === 'lifetime' ? 1000000 : 50;
-  } else if ((data.status === 'grace' || data.status === 'past_due') && new Date(data.grace_ends_at) > new Date()) {
-    state.dailyLimit = 50;
+    state.dailyLimit = Number(data.daily_limit) || 0;
+  } else if (data.status === 'grace' && data.grace_until && new Date(data.grace_until) > new Date()) {
+    state.dailyLimit = Number(data.daily_limit) || 0;
   } else if (data.status === 'trial') {
-    state.dailyLimit = new Date(data.trial_ends_at) > new Date() ? 5 : 0;
+    state.dailyLimit = data.valid_until && new Date(data.valid_until) > new Date()
+      ? Number(data.daily_limit) || 0
+      : 0;
   } else {
     state.dailyLimit = 0;
   }
@@ -1547,7 +1518,6 @@ async function _loadPreferences() {
   state.tourComplete = Boolean(data?.tour_completed_at || data?.tour_skipped_at);
   if (data?.preferred_provider && ['anthropic','deepseek','openai'].includes(data.preferred_provider)) {
     state.provider = data.preferred_provider;
-    sessionStorage.setItem('apex_provider', state.provider);
     syncProviderUI();
   }
 }
@@ -1558,9 +1528,9 @@ function _getPlanLabel() {
   if (!state.subscription) return 'FREE';
   const s = state.subscription;
   if (s.status === 'active')   return 'PRO';
-  if (s.status === 'past_due' || s.status === 'grace') return 'PAYMENT DUE';
+  if (s.status === 'grace') return 'PAYMENT DUE';
   if (s.status === 'trial') {
-    return new Date(s.trial_ends_at) > new Date() ? 'TRIAL' : 'EXPIRED';
+    return s.valid_until && new Date(s.valid_until) > new Date() ? 'TRIAL' : 'EXPIRED';
   }
   return s.status.toUpperCase();
 }
@@ -1620,20 +1590,17 @@ function _updateAccountMenu() {
     if (sub.status === 'active') {
       isPro   = true;
       let renewInfo = '';
-      if (sub.cancel_at_period_end && sub.current_period_end) {
-        const d = new Date(sub.current_period_end);
-        renewInfo = ` — cancels ${d.toLocaleDateString()}`;
-      } else if (sub.current_period_end) {
-        const d = new Date(sub.current_period_end);
-        renewInfo = ` — renews ${d.toLocaleDateString()}`;
+      if (sub.valid_until) {
+        const d = new Date(sub.valid_until);
+        renewInfo = sub.product_tier === 'lifetime' ? '' : ` — through ${d.toLocaleDateString()}`;
       }
-      subLine = `✓ Pro${renewInfo}`;
+      subLine = `✓ ${sub.product_tier === 'lifetime' ? 'Lifetime' : 'Pro'}${renewInfo}`;
     } else if (sub.status === 'trial') {
-      const d        = new Date(sub.trial_ends_at);
+      const d        = new Date(sub.valid_until);
       const daysLeft = Math.max(0, Math.ceil((d - Date.now()) / 86400000));
       subLine = daysLeft > 0 ? `Trial — ${daysLeft}d left` : 'Trial expired';
-    } else if (sub.status === 'past_due' || sub.status === 'grace') {
-      const grace = sub.grace_ends_at ? new Date(sub.grace_ends_at).toLocaleDateString() : 'soon';
+    } else if (sub.status === 'grace') {
+      const grace = sub.grace_until ? new Date(sub.grace_until).toLocaleDateString() : 'soon';
       subLine = `⚠ Payment due — access through ${grace}`;
     } else {
       subLine = sub.status.charAt(0).toUpperCase() + sub.status.slice(1);
@@ -1648,7 +1615,7 @@ function _updateAccountMenu() {
   let actions = '';
   if (isPro) {
     actions += `<button type="button" class="menu-item" onclick="_closeMenu();openBillingPortal()">⇄ Manage Billing</button>`;
-  } else if (sub?.status === 'past_due' || sub?.status === 'grace') {
+  } else if (sub?.status === 'grace') {
     actions += `<button type="button" class="menu-item" style="color:var(--amber)" onclick="_closeMenu();goStripe('monthly')">⚠ Fix Payment</button>`;
   } else {
     actions += `<button type="button" class="menu-item" onclick="_closeMenu();goStripe('annual')">↑ Upgrade to Pro</button>`;
@@ -1761,13 +1728,13 @@ async function deleteAccount() {
     toast(data.error || 'Account deletion failed', 'err');
     return;
   }
-  sessionStorage.clear();
+  sessionStorage.removeItem('bndr_last_error');
   localStorage.removeItem(LOCAL_PROFILES_KEY);
   await sb.auth.signOut();
   window.location.replace('index.html?account=deleted');
 }
 
-// ══ API KEY MODAL ════════════════════════════════════════════
+// ══ AI PROVIDER ══════════════════════════════════════════════
 
 function switchProviderTab(p) {
   ['anthropic','deepseek','openai'].forEach(id => {
@@ -1777,13 +1744,7 @@ function switchProviderTab(p) {
     if (tab)   tab.classList.toggle('active', id === p);
     if (panel) panel.classList.toggle('hidden', id !== p);
   });
-  const keyMap = {
-    anthropic: ['apiKeyInput', state.apiKey],
-    deepseek:  ['deepseekKeyInput', state.deepseekKey],
-    openai:    ['openaiKeyInput', state.openaiKey]
-  };
-  const [inputId, val] = keyMap[p] || [];
-  if (inputId && val) document.getElementById(inputId).value = val;
+  document.getElementById('keyModal').dataset.provider = p;
 }
 
 function syncProviderUI() {
@@ -1797,45 +1758,17 @@ function syncProviderUI() {
 function openKeyModal() {
   document.getElementById('keyModal').classList.remove('hidden');
   switchProviderTab(state.provider);
-  const inputIds = { anthropic:'apiKeyInput', deepseek:'deepseekKeyInput', openai:'openaiKeyInput' };
-  const inp = document.getElementById(inputIds[state.provider] || 'apiKeyInput');
-  setTimeout(() => inp && inp.focus(), 100);
 }
 function closeKeyModal() {
   document.getElementById('keyModal').classList.add('hidden');
 }
 
-async function saveApiKey() {
+async function saveProvider() {
   const activeTab = ['anthropic','deepseek','openai'].find(p => {
     const el = document.getElementById('provTab' + p.charAt(0).toUpperCase() + p.slice(1));
     return el && el.classList.contains('active');
   }) || 'anthropic';
-
-  if (activeTab === 'deepseek') {
-    if (!state.user) {
-      closeKeyModal();
-      toast('Sign in first to use the authenticated DeepSeek relay', 'warn');
-      openAuthModal('signin');
-      return;
-    }
-    const key = document.getElementById('deepseekKeyInput').value.trim();
-    if (!key || key.length < 10) { toast('Enter a valid DeepSeek API key', 'err'); return; }
-    state.deepseekKey = key; state.provider = 'deepseek';
-    sessionStorage.setItem('apex_ds_key', key);
-    sessionStorage.setItem('apex_provider', 'deepseek');
-  } else if (activeTab === 'openai') {
-    const key = document.getElementById('openaiKeyInput').value.trim();
-    if (!key || !key.startsWith('sk-')) { toast('Enter a valid OpenAI API key', 'err'); return; }
-    state.openaiKey = key; state.provider = 'openai';
-    sessionStorage.setItem('apex_oai_key', key);
-    sessionStorage.setItem('apex_provider', 'openai');
-  } else {
-    const key = document.getElementById('apiKeyInput').value.trim();
-    if (!key || !key.startsWith('sk-')) { toast('Enter a valid Anthropic API key', 'err'); return; }
-    state.apiKey = key; state.provider = 'anthropic';
-    sessionStorage.setItem('apex_key', key);
-    sessionStorage.setItem('apex_provider', 'anthropic');
-  }
+  state.provider = activeTab;
   closeKeyModal();
   syncProviderUI();
   if (state.user) {
@@ -1844,18 +1777,16 @@ async function saveApiKey() {
       preferred_provider: state.provider
     }, { onConflict: 'user_id' });
   }
-  toast('AI key saved for this session', 'ok');
+  toast('AI provider selected', 'ok');
   updateStatus('ready', 'READY');
 }
 
-function requireKey() {
+function requireGateway() {
   if (!CLOUD_OK || !state.user) {
     openAuthModal('signin');
     toast('Sign in to use the secure AI gateway', 'warn');
     return false;
   }
-  const keyMap = { anthropic: state.apiKey, deepseek: state.deepseekKey, openai: state.openaiKey };
-  if (!keyMap[state.provider]) { openKeyModal(); return false; }
   return true;
 }
 
@@ -1877,10 +1808,7 @@ async function _fetchWithTimeout(url, options = {}, timeoutMs = 120000) {
 async function callVoiceEngine(operation, payload) {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) throw _makeError('VE-AUTH_REQUIRED', 'Sign in required');
-  const key = { anthropic: state.apiKey, deepseek: state.deepseekKey, openai: state.openaiKey }[state.provider];
-  if (!key) throw _makeError('VE-KEY_REQUIRED', 'Configure an AI provider key');
 
-  const model = AI_MODELS[state.provider];
   let res;
   try {
     res = await _fetchWithTimeout(`${SUPABASE_URL}/functions/v1/ai-proxy`, {
@@ -1891,8 +1819,6 @@ async function callVoiceEngine(operation, payload) {
       },
       body: JSON.stringify({
         provider: state.provider,
-        key,
-        model,
         operation,
         payload
       })
@@ -2092,7 +2018,7 @@ This isn't one of them.`;
 // ══ ANALYSIS ═════════════════════════════════════════════════
 
 async function runAnalysis() {
-  if (!requireKey()) return;
+  if (!requireGateway()) return;
 
   // Disable immediately — prevents double-submit during async gate check
   const analyzeBtn = document.getElementById('analyzeBtn');
@@ -2148,7 +2074,7 @@ async function runAnalysis() {
       <div class="panel" style="border-color:rgba(255,59,59,0.3);">
         <div class="panel-body" style="padding:24px;">
           <div class="section-eyebrow" style="color:var(--red);margin-bottom:8px;">Analysis Failed</div>
-          <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">${escapeHtml(e.message || 'Unknown error — check your API key and network.')}</p>
+          <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">${escapeHtml(e.message || 'Unknown error — try again or contact support.')}</p>
           <div class="flex-row">
             <button type="button" class="btn btn-primary" onclick="runAnalysis()">Retry</button>
             <button type="button" class="btn btn-ghost" onclick="reportLastError()">Report this</button>
@@ -2243,7 +2169,7 @@ function clearFilters() { activeFilters.clear(); renderFilters(); }
 // ══ GENERATE PROFILE ══════════════════════════════════════════
 
 async function runGenerate() {
-  if (!requireKey()) return;
+  if (!requireGateway()) return;
   if (!state.analysis) { toast('Run analysis first', 'err'); return; }
 
   // Disable immediately — prevents double-submit during async gate check
@@ -2310,7 +2236,7 @@ async function runGenerate() {
       <div class="panel" style="border-color:rgba(255,59,59,0.3);">
         <div class="panel-body" style="padding:24px;">
           <div class="section-eyebrow" style="color:var(--red);margin-bottom:8px;">Generation Failed</div>
-          <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">${escapeHtml(e.message || 'Unknown error — check your API key and network.')}</p>
+          <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px;">${escapeHtml(e.message || 'Unknown error — try again or contact support.')}</p>
           <div class="flex-row">
             <button type="button" class="btn btn-primary" onclick="runGenerate()">Retry</button>
             <button type="button" class="btn btn-ghost" onclick="reportLastError()">Report this</button>
@@ -2406,7 +2332,7 @@ function renderOutput() {
 // ══ QUALITY CHECK ══════════════════════════════════════════════
 
 async function runQualityCheck() {
-  if (!requireKey()) return;
+  if (!requireGateway()) return;
   if (!state.machineFile) { toast('Generate a profile first', 'err'); return; }
 
   // Quality check costs a usage token
@@ -2499,20 +2425,33 @@ function copyHuman() {
     .then(() => toast('Instructions copied', 'ok'))
     .catch(() => toast('Copy failed', 'err'));
 }
-function downloadMachine() {
+async function downloadMachine() {
   if (!state.machineFile) return;
   const name = document.getElementById('profileName')?.value.trim() || state.profileName || 'voice_profile';
-  _download(JSON.stringify(state.machineFile, null, 2), `${_slug(name)}_machine.json`, 'application/json');
+  const content = JSON.stringify(state.machineFile, null, 2);
+  const filename = `${_slug(name)}_machine.json`;
+  await _archiveExport(content, filename, 'application/json');
+  _download(content, filename, 'application/json');
 }
-function downloadHuman() {
+async function downloadHuman() {
   if (!state.humanFile) return;
   const name = document.getElementById('profileName')?.value.trim() || state.profileName || 'voice_profile';
   const text = document.getElementById('humanOutput').innerText;
-  _download(text, `${_slug(name)}_instructions.txt`, 'text/plain');
+  const filename = `${_slug(name)}_instructions.txt`;
+  await _archiveExport(text, filename, 'text/plain');
+  _download(text, filename, 'text/plain');
 }
-function exportAll() {
-  if (state.machineFile) downloadMachine();
-  setTimeout(() => { if (state.humanFile) downloadHuman(); }, 300);
+async function exportAll() {
+  if (state.machineFile) await downloadMachine();
+  if (state.humanFile) await downloadHuman();
+}
+async function _archiveExport(content, filename, type) {
+  if (!CLOUD_OK || !state.user) return;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const path = `${state.user.id}/${timestamp}/${filename}`;
+  const { error } = await sb.storage.from('voice-profile-exports')
+    .upload(path, new Blob([content], { type }), { contentType: type, upsert: false });
+  if (error) toast('Downloaded locally; secure cloud archive failed', 'warn');
 }
 function _download(content, filename, type) {
   const a  = document.createElement('a');
@@ -2611,7 +2550,6 @@ async function restoreProfile(id) {
   // Restore the provider that was active when the profile was generated
   if (data.provider && ['anthropic','deepseek','openai'].includes(data.provider)) {
     state.provider = data.provider;
-    sessionStorage.setItem('apex_provider', data.provider);
     syncProviderUI();
   }
 
@@ -2740,7 +2678,7 @@ async function _callWithRetry(operation, payload, attempts = 2) {
       lastErr = e;
       const msg = (e.message || '').toLowerCase();
       if (msg.includes('401') || msg.includes('403') || msg.includes('unauthorized') ||
-          msg.includes('invalid x-api-key') || msg.includes('invalid api key')) throw e;
+          msg.includes('provider is not configured')) throw e;
       if (i < attempts - 1) {
         updateStatus('working', 'RETRYING…');
         await new Promise(r => setTimeout(r, 1500 * (i + 1)));
@@ -2937,7 +2875,6 @@ function _restoreLocalProfile(id) {
   state.humanFile   = buildHumanDoc(state.machineFile);
   if (data.provider && ['anthropic','deepseek','openai'].includes(data.provider)) {
     state.provider = data.provider;
-    sessionStorage.setItem('apex_provider', data.provider);
     syncProviderUI();
   }
   document.getElementById('profileName').value = state.profileName;
@@ -2971,7 +2908,7 @@ const TOUR_STEPS = [
   { title: 'Welcome to VoiceEngine 👋', text: "This tool learns how YOU write, then teaches any AI to write the same way. Here's a quick look around — it takes about a minute." },
   { sel: '#stepsBar', title: 'Four simple steps', text: 'You always move left to right: paste your writing, let the engine read it, choose your rules, and collect your files. Tap any finished step to go back.' },
   { sel: '#sampleText', title: 'Start with your words', text: 'Paste something you wrote yourself — an email, a post, anything. Around 150–600 words works best. Want a demo first? Press “Load Example”.' },
-  { sel: '#tourKeyBtn', title: 'Add your AI key', text: 'The engine uses your own AI account (Anthropic, OpenAI, or DeepSeek) to do the reading. Tap this, paste your key, done. It stays only in this tab — it is never stored anywhere else.' },
+  { sel: '#tourKeyBtn', title: 'Choose your AI provider', text: 'Choose Anthropic, OpenAI, or DeepSeek. Provider credentials remain encrypted in the server environment and never enter your browser.' },
   { sel: '#analyzeBtn', title: 'Press Analyze', text: "When your words are in, press this button. You'll see your “writing DNA” — and you can correct anything it got wrong." },
   { sel: '.bottom-bar', title: 'Save it for later', text: 'Down here you can save a finished voice profile and load it again any time — so you only do this once per voice.' },
   { title: "That's it!", text: 'At the end you get two files: one for AI tools and one for people. Use Email feedback below for feature ideas or errors. You can replay this tour from the ? button.' }
@@ -3158,10 +3095,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     else openAuthModal('signin');
   }
 
-  // AI key status indicator
-  const activeKey = { anthropic: state.apiKey, deepseek: state.deepseekKey, openai: state.openaiKey }[state.provider];
-  if (activeKey) updateStatus('ready', 'READY');
-  else updateStatus('idle', 'IDLE');
+  updateStatus('ready', 'READY');
 
   // Snapshot Configure-step defaults so Start Over can restore them
   window._cfgDefaults = [];
@@ -3191,11 +3125,6 @@ document.getElementById('authModal').addEventListener('click', function(e) {
   // Closable when authenticated or in offline recovery mode.
   if (e.target === this && (state.user || !CLOUD_OK)) closeAuthModal();
 });
-
-// Enter key in AI key inputs
-document.getElementById('apiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
-document.getElementById('deepseekKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
-document.getElementById('openaiKeyInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveApiKey(); });
 
 window.addEventListener('error', event => {
   if (event.error) _recordError(event.error);
