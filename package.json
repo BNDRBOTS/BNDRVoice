@@ -17,10 +17,11 @@
     "test:endpoints": "node --test tests/endpoints.test.mjs",
     "test:functions": "node --test tests/functions-http.test.mjs",
     "test:security": "node --test tests/security.test.mjs",
+    "test:docker": "node --test tests/docker-health.test.mjs",
     "test:deno": "deno check --config supabase/functions/deno.json --node-modules-dir=manual supabase/functions/ai-proxy/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/account-delete/index.ts supabase/functions/billing-portal/index.ts supabase/functions/error-report/index.ts supabase/functions/reconcile-subscriptions/index.ts supabase/functions/redeem-access/index.ts supabase/functions/create-checkout/index.ts",
     "test:workflows": "deno test --allow-env --allow-net --config supabase/functions/deno.json --node-modules-dir=manual supabase/functions/_shared/stripe-workflows.test.ts",
     "test:html": "html-validate index.html app.html privacy.html terms.html pricing.html 404.html 500.html",
-    "verify": "npm run build && npm run test && npm run test:browser && npm run test:deno && npm run test:workflows"
+    "verify": "npm run build && npm run test && npm run test:browser && npm run test:deno && npm run test:workflows && npm run test:docker"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",

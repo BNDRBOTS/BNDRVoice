@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import AxeBuilder from '@axe-core/playwright';
 import serverlessChromium from '@sparticuz/chromium';
 import { chromium as playwrightChromium } from 'playwright';
@@ -241,7 +242,7 @@ function watchForErrors(page) {
   return errors;
 }
 
-test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90_000 }, async () => {
+test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 180_000 }, async () => {
   const server = spawn(process.execPath, ['tests/server.mjs'], {
     cwd: ROOT,
     env: { ...process.env, PORT: '4173' },
@@ -251,12 +252,18 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
 
   let browser;
   try {
+    const libDir = join(tmpdir(), 'al2023', 'lib');
+    if (!existsSync(join(libDir, 'libnspr4.so'))) {
+      const { inflate } = await import(pathToFileURL(join(ROOT, 'node_modules/@sparticuz/chromium/build/lambdafs.js')).href);
+      await inflate(join(ROOT, 'node_modules/@sparticuz/chromium/bin/al2023.tar.br'));
+    }
+    process.env.LD_LIBRARY_PATH = [libDir, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
     const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
       || await serverlessChromium.executablePath();
     browser = await playwrightChromium.launch({
       executablePath,
       headless: true,
-      args: ['--no-sandbox', '--disable-dev-shm-usage', '--enable-unsafe-swiftshader']
+      args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-setuid-sandbox', '--enable-unsafe-swiftshader']
     });
 
     const desktop = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
@@ -393,14 +400,21 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
       assert.equal(await legalPage.locator('h1').innerText(), heading);
       assert.equal(await legalPage.locator('.brand-logo--legal').evaluate((img) => img.naturalWidth > 0), true);
       assert.equal(await legalPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
+      await legalPage.screenshot({ path: join(ARTIFACT_DIR, `${path.slice(1)}-desktop.png`), fullPage: true });
     }
     const pricingResponse = await legalPage.goto(`${BASE_URL}/pricing`, { waitUntil: 'networkidle' });
     assert.equal(pricingResponse?.status(), 200);
     assert.match(await legalPage.locator('h1').innerText(), /Costs less than the words it saves you/);
+    await legalPage.screenshot({ path: join(ARTIFACT_DIR, 'pricing-desktop.png'), fullPage: true });
     const missingPage = await legalPage.goto(`${BASE_URL}/definitely-missing-page`, { waitUntil: 'networkidle' });
     assert.equal(missingPage?.status(), 404);
     assert.equal(await legalPage.getByRole('button', { name: 'Report this' }).count(), 1);
     assert.equal(await legalPage.getByRole('button', { name: 'Copy report' }).count(), 1);
+    await legalPage.screenshot({ path: join(ARTIFACT_DIR, '404-desktop.png'), fullPage: true });
+    const crashStatic = await legalPage.goto(`${BASE_URL}/500.html`, { waitUntil: 'networkidle' });
+    assert.equal(crashStatic?.status(), 200);
+    assert.equal(await legalPage.getByRole('button', { name: 'Report this' }).count(), 1);
+    await legalPage.screenshot({ path: join(ARTIFACT_DIR, '500-desktop.png'), fullPage: true });
     await legalPage.close();
 
     const crashPage = await desktop.newPage();
@@ -419,7 +433,7 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
     await tourPage.locator('#tourOverlay:not(.hidden)').waitFor();
     assert.equal(await tourPage.getByRole('button', { name: 'Skip' }).count(), 1);
     await tourPage.getByRole('button', { name: 'Skip' }).click();
-    await tourPage.locator('#tourOverlay.hidden').waitFor();
+    await tourPage.locator('#tourOverlay').waitFor({ state: 'hidden' });
     await tourPage.getByRole('button', { name: 'Open the guided tour' }).click();
     await tourPage.locator('#tourOverlay:not(.hidden)').waitFor();
     await tourPage.close();

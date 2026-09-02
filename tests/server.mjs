@@ -46,6 +46,6 @@ createServer((request, response) => {
 
   response.writeHead(200, { ...headers, 'Content-Type': types[extname(target)] || 'application/octet-stream' });
   createReadStream(target).pipe(response);
-}).listen(port, '127.0.0.1', () => {
+}).listen(port, '0.0.0.0', () => {
   process.stdout.write(`BNDR preview http://127.0.0.1:${port}\n`);
 });
