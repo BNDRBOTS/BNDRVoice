@@ -23,9 +23,30 @@ npm ci
 npm test
 npm run test:browser
 npm run test:deno
+npm run test:workflows
 ```
 
 `npm run test:browser` writes screenshots to `BROWSER_ARTIFACT_DIR` when set, otherwise `/tmp/bndr-browser-artifacts`.
+
+## One-command deploy
+
+```bash
+# Vercel
+npx vercel --prod
+
+# Netlify
+npx netlify deploy --prod --dir .
+
+# Railway
+railway up
+
+# Render
+# Connect this repo in the Render dashboard; render.yaml builds the Dockerfile.
+
+# Docker
+docker build -t bndr-voiceengine .
+docker run --rm -p 8080:8080 bndr-voiceengine
+```
 
 ## Configuration
 

@@ -7,14 +7,24 @@
   <meta name="application-version" content="3.2.0">
   <title>Service interruption · BNDR VoiceEngine</title>
   <link rel="stylesheet" href="assets/error.css">
+  <script src="config.js"></script>
 </head>
-<body>
+<body data-error-status="500">
   <main>
     <img class="brand" src="assets/bndr-logo.png" width="797" height="230" alt="BNDR LLC">
     <p class="code">ERROR 500</p>
     <h1>Signal interrupted.</h1>
-    <p>The service hit a temporary fault. Your browser-held sample and provider key have not been uploaded by this page.</p>
-    <a href="app.html">Try VoiceEngine again</a>
+    <p>The service hit a temporary fault. Your writing sample stays in this browser until you retry. Provider credentials never leave the server.</p>
+    <p class="code" id="errorCode">NAV-500-0000</p>
+    <p>Report this with one tap. The email is already filled in — you do not need to type anything.</p>
+    <p>Send to <strong id="supportAddress">bndr.labs@gmail.com</strong></p>
+    <textarea id="errorCopy" aria-label="Error report" readonly rows="8" style="width:100%;margin:0 0 16px;padding:12px;border-radius:8px;background:#0e0e0f;color:#f4f1ec;border:1px solid #29292c;font:12px/1.5 'Space Mono',monospace;"></textarea>
+    <p>
+      <a href="app.html">Try VoiceEngine again</a>
+      <button type="button" id="reportBtn" style="margin-left:8px;display:inline-flex;padding:12px 20px;border-radius:8px;background:transparent;color:#f4f1ec;border:1px solid #29292c;font-weight:700;cursor:pointer;">Report this</button>
+      <button type="button" id="copyBtn" style="margin-left:8px;display:inline-flex;padding:12px 20px;border-radius:8px;background:transparent;color:#f4f1ec;border:1px solid #29292c;font-weight:700;cursor:pointer;">Copy report</button>
+    </p>
   </main>
+  <script src="assets/error-report.js"></script>
 </body>
 </html>

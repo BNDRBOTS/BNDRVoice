@@ -5,9 +5,10 @@ import {
   processStripeEvent,
   syncStripeSubscription,
 } from '../_shared/stripe-workflows.ts'
+import { serve } from '../_shared/serve.ts'
 import { adminClient, serverConfigured } from '../_shared/supabase.ts'
 
-Deno.serve(async req => {
+export async function handleRequest(req: Request): Promise<Response> {
   if (req.method !== 'POST') return Response.json({ error: 'Method not allowed' }, { status: 405 })
   const expected = Deno.env.get('RECONCILE_TOKEN') || ''
   if (!expected) return Response.json({ error: 'Reconciliation is not configured' }, { status: 503 })
@@ -75,4 +76,6 @@ Deno.serve(async req => {
 
   const { error: purgeError } = await admin.rpc('purge_expired_audit_records')
   return Response.json({ checked, changed, retried, failed, audit_purged: !purgeError })
-})
+}
+
+serve(handleRequest)

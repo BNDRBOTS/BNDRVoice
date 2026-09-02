@@ -4,5 +4,11 @@ node_modules/
 !.env.example
 playwright-report/
 test-results/
+coverage/
+dist/
+.vercel/
+.netlify/
+.supabase/
 supabase/.temp/
+*.map
 .DS_Store

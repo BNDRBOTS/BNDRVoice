@@ -2,6 +2,8 @@
 // selection are server-owned and never enter the browser.
 
 import { buildForensicRequest, type VoiceOperation } from './forensic.ts'
+import { enforceRateLimit } from '../_shared/rate-limit.ts'
+import { serve } from '../_shared/serve.ts'
 import { serverConfigured, userClient } from '../_shared/supabase.ts'
 
 type Provider = 'anthropic' | 'deepseek' | 'openai'
@@ -136,7 +138,7 @@ async function callProvider(
   }
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
+export async function handleRequest(req: Request): Promise<Response> {
   const correlationId = crypto.randomUUID()
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders(req) })
   if (req.method !== 'POST') return error(req, 'VE-METHOD', 'Method not allowed', 405, correlationId)
@@ -158,6 +160,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
   const { data: { user }, error: authError } = await client.auth.getUser()
   if (authError || !user) {
     return error(req, 'VE-AUTH_INVALID', 'Session expired; sign in again', 401, correlationId)
+  }
+  if (!(await enforceRateLimit(client, 'ai-proxy', 30, 60))) {
+    return error(req, 'VE-RATE', 'Too many AI requests. Try again in a minute.', 429, correlationId)
   }
 
   let parsed: unknown
@@ -223,4 +228,6 @@ Deno.serve(async (req: Request): Promise<Response> => {
       correlationId,
     )
   }
-})
+}
+
+serve(handleRequest)

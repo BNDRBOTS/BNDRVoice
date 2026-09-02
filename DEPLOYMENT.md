@@ -15,6 +15,7 @@ supabase functions deploy billing-portal
 supabase functions deploy error-report
 supabase functions deploy reconcile-subscriptions
 supabase functions deploy redeem-access
+supabase functions deploy create-checkout
 ```
 
 Required server secrets are listed in `.env.example`. Schedule one authenticated `POST` to `reconcile-subscriptions` daily using `RECONCILE_TOKEN`. The job reconciles every Stripe subscription, retries failed or abandoned webhook events, and purges expired audit receipts.
@@ -39,9 +40,16 @@ In Stripe, send these events to `/functions/v1/stripe-webhook`:
 - `charge.dispute.created`
 - `charge.dispute.closed`
 
-## 2. Railway UI
+## 2. UI hosts
 
-Railway is the production UI target. It builds `Dockerfile` using `railway.toml`, serves `/health`, preserves 404 responses, and emits `X-BNDR-Release: 3.2.0`. Configure `config.js` with only the Supabase URL and publishable key before deployment.
+Railway, Render, and Docker all build `Dockerfile`, serve `/health`, preserve 404 responses, and emit `X-BNDR-Release: 3.2.0`. Vercel and Netlify serve the same static files with `vercel.json` / `netlify.toml` headers and `/health` rewrites. Configure `config.js` with only the Supabase URL and publishable key before deployment.
+
+```bash
+npx vercel --prod
+npx netlify deploy --prod --dir .
+railway up
+docker build -t bndr-voiceengine . && docker run --rm -p 8080:8080 bndr-voiceengine
+```
 
 ## 3. Required acceptance
 

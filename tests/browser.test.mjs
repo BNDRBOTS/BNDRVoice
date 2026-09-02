@@ -394,7 +394,35 @@ test('desktop, mobile, and the full mocked VoiceEngine flow work', { timeout: 90
       assert.equal(await legalPage.locator('.brand-logo--legal').evaluate((img) => img.naturalWidth > 0), true);
       assert.equal(await legalPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), true);
     }
+    const pricingResponse = await legalPage.goto(`${BASE_URL}/pricing`, { waitUntil: 'networkidle' });
+    assert.equal(pricingResponse?.status(), 200);
+    assert.match(await legalPage.locator('h1').innerText(), /Costs less than the words it saves you/);
+    const missingPage = await legalPage.goto(`${BASE_URL}/definitely-missing-page`, { waitUntil: 'networkidle' });
+    assert.equal(missingPage?.status(), 404);
+    assert.equal(await legalPage.getByRole('button', { name: 'Report this' }).count(), 1);
+    assert.equal(await legalPage.getByRole('button', { name: 'Copy report' }).count(), 1);
     await legalPage.close();
+
+    const crashPage = await desktop.newPage();
+    await crashPage.goto(`${BASE_URL}/app.html?force_error=client`, { waitUntil: 'networkidle' });
+    await crashPage.locator('#errorDialog:not(.hidden)').waitFor();
+    assert.match(await crashPage.locator('#errorDialogCode').innerText(), /CLIENT-500-[A-F0-9]{4}/);
+    assert.equal(await crashPage.getByRole('button', { name: 'Report this' }).count(), 1);
+    await crashPage.close();
+
+    const tourPage = await desktop.newPage();
+    await tourPage.addInitScript(() => {
+      localStorage.setItem('bndr_consent', new Date().toISOString());
+      localStorage.removeItem('bndr_tour_done');
+    });
+    await tourPage.goto(`${BASE_URL}/app`, { waitUntil: 'networkidle' });
+    await tourPage.locator('#tourOverlay:not(.hidden)').waitFor();
+    assert.equal(await tourPage.getByRole('button', { name: 'Skip' }).count(), 1);
+    await tourPage.getByRole('button', { name: 'Skip' }).click();
+    await tourPage.locator('#tourOverlay.hidden').waitFor();
+    await tourPage.getByRole('button', { name: 'Open the guided tour' }).click();
+    await tourPage.locator('#tourOverlay:not(.hidden)').waitFor();
+    await tourPage.close();
 
     const redeemPage = await desktop.newPage();
     await redeemPage.goto(`${BASE_URL}/app.html?redeem=1`, { waitUntil: 'networkidle' });

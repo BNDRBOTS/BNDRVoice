@@ -1,4 +1,7 @@
 import Stripe from 'npm:stripe@14.21.0'
+import { jsonError } from '../_shared/errors.ts'
+import { enforceRateLimit } from '../_shared/rate-limit.ts'
+import { serve } from '../_shared/serve.ts'
 import { adminClient, serverConfigured, userClient } from '../_shared/supabase.ts'
 
 const cors = {
@@ -44,7 +47,7 @@ async function listExportPaths(admin: ReturnType<typeof adminClient>, prefix: st
   return paths
 }
 
-Deno.serve(async req => {
+export async function handleRequest(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
   if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405)
   if (!serverConfigured(true)) return reply({ error: 'Server configuration incomplete' }, 503)
@@ -54,6 +57,9 @@ Deno.serve(async req => {
   const client = userClient(authHeader)
   const { data: { user }, error: authError } = await client.auth.getUser()
   if (authError || !user) return reply({ error: 'Unauthorized' }, 401)
+  if (!(await enforceRateLimit(client, 'account-delete', 5, 60))) {
+    return jsonError(cors, 'RATE', 429, 'Too many deletion attempts. Try again in a minute.')
+  }
 
   const body = await req.json().catch(() => ({}))
   if (body?.confirmation !== 'DELETE') {
@@ -107,4 +113,6 @@ Deno.serve(async req => {
   const { error: deleteError } = await admin.auth.admin.deleteUser(user.id)
   if (deleteError) return reply({ error: 'Account deletion failed' }, 500)
   return reply({ deleted: true })
-})
+}
+
+serve(handleRequest)

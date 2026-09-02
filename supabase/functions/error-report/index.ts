@@ -1,3 +1,7 @@
+import { sendTransactionalEmail } from '../_shared/email.ts'
+import { jsonError } from '../_shared/errors.ts'
+import { enforceRateLimit } from '../_shared/rate-limit.ts'
+import { serve } from '../_shared/serve.ts'
 import { serverConfigured, userClient } from '../_shared/supabase.ts'
 
 const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://voice.bndr.bot'
@@ -9,7 +13,9 @@ const cors = {
 const reply = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { ...cors, 'Cache-Control': 'no-store' } })
 
-Deno.serve(async req => {
+const ERROR_CODE = /^(VE-[A-Z0-9_]{2,40}|[A-Z]{2,12}-[A-Z0-9]{2,16}-[A-F0-9]{4,8})$/
+
+export async function handleRequest(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
   if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405)
 
@@ -19,9 +25,12 @@ Deno.serve(async req => {
   const client = userClient(authHeader)
   const { data: { user }, error: authError } = await client.auth.getUser()
   if (authError || !user) return reply({ error: 'Unauthorized' }, 401)
+  if (!(await enforceRateLimit(client, 'error-report', 20, 60))) {
+    return jsonError(cors, 'RATE', 429, 'Too many error reports. Try again in a minute.')
+  }
 
   const input = await req.json().catch(() => null)
-  if (!input || !/^VE-[A-Z0-9_]{2,40}$/.test(String(input.error_code || ''))) {
+  if (!input || !ERROR_CODE.test(String(input.error_code || ''))) {
     return reply({ error: 'Invalid report' }, 400)
   }
   const report = {
@@ -37,19 +46,15 @@ Deno.serve(async req => {
   const { error } = await client.from('error_reports').insert(report)
   if (error) return reply({ error: 'Could not store report' }, 500)
 
-  const resendKey = Deno.env.get('RESEND_API_KEY')
-  const reportTo = Deno.env.get('ERROR_REPORT_TO')
-  if (resendKey && reportTo) {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        from: 'VoiceEngine Errors <errors@bndr.bot>',
-        to: [reportTo],
-        subject: `[${report.error_code}] VoiceEngine ${report.correlation_id}`,
-        text: JSON.stringify(report, null, 2),
-      }),
-    }).catch(() => null)
+  const reportTo = Deno.env.get('ERROR_REPORT_TO') || Deno.env.get('SUPPORT_EMAIL') || ''
+  if (reportTo) {
+    await sendTransactionalEmail({
+      to: reportTo,
+      subject: `[${report.error_code}] VoiceEngine ${report.correlation_id}`,
+      text: JSON.stringify(report, null, 2),
+    })
   }
   return reply({ accepted: true, correlation_id: report.correlation_id })
-})
+}
+
+serve(handleRequest)

@@ -4,6 +4,8 @@ import {
   finalizeBillingEvent,
   processStripeEvent,
 } from '../_shared/stripe-workflows.ts'
+import { testKeysInProdMessage, testStripeKeyInProduction } from '../_shared/env.ts'
+import { serve } from '../_shared/serve.ts'
 import { adminClient, serverConfigured } from '../_shared/supabase.ts'
 
 const stripeSecret = Deno.env.get('STRIPE_SECRET_KEY') || ''
@@ -15,8 +17,9 @@ const stripe = new Stripe(stripeSecret || 'not-configured', {
 const text = (message: string, status = 200) =>
   new Response(message, { status, headers: { 'Cache-Control': 'no-store' } })
 
-Deno.serve(async req => {
+export async function handleRequest(req: Request): Promise<Response> {
   if (req.method !== 'POST') return text('Method not allowed', 405)
+  if (testStripeKeyInProduction()) return text(testKeysInProdMessage(), 500)
   if (!stripeSecret || !webhookSecret || !serverConfigured(true)) {
     return text('Billing webhook is not configured', 503)
   }
@@ -46,4 +49,6 @@ Deno.serve(async req => {
     await finalizeBillingEvent(admin, event.id, 'failed', message).catch(() => undefined)
     return text('Handler failed', 500)
   }
-})
+}
+
+serve(handleRequest)

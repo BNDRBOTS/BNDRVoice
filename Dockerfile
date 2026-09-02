@@ -10,6 +10,7 @@ COPY index.html /usr/share/nginx/html/index.html
 COPY app.html /usr/share/nginx/html/app.html
 COPY privacy.html /usr/share/nginx/html/privacy.html
 COPY terms.html /usr/share/nginx/html/terms.html
+COPY pricing.html /usr/share/nginx/html/pricing.html
 COPY 404.html /usr/share/nginx/html/404.html
 COPY 500.html /usr/share/nginx/html/500.html
 COPY config.js /usr/share/nginx/html/config.js

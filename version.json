@@ -1,5 +1,6 @@
 {
   "name": "BNDR VoiceEngine",
   "release": "3.2.0",
-  "branch": "ship/2026-07-30-2"
+  "branch": "arena/01a06138-bndrvoice",
+  "commit": "8389185"
 }

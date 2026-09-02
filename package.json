@@ -5,15 +5,22 @@
   "description": "Verification and release suite for the full-stack BNDR VoiceEngine",
   "scripts": {
     "preview": "node tests/server.mjs",
-    "build": "npm run test:contracts && npm run test:html",
+    "build": "node scripts/stamp-version.mjs && npm run test:contracts && npm run test:html",
     "lint": "npm run test:html",
-    "typecheck": "npm run test:contracts",
-    "test": "npm run test:contracts && npm run test:html",
+    "typecheck": "npm run test:contracts && npm run test:deno",
+    "test": "npm run test:contracts && npm run test:html && npm run test:env && npm run test:matrix && npm run test:endpoints && npm run test:functions && npm run test:security && npm run test:dom",
+    "test:dom": "node --test tests/dom-gates.test.mjs",
     "test:browser": "node --test tests/browser.test.mjs",
     "test:contracts": "node --test tests/site.test.mjs",
-    "test:deno": "deno check --config supabase/functions/deno.json --node-modules-dir=manual supabase/functions/ai-proxy/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/account-delete/index.ts supabase/functions/billing-portal/index.ts supabase/functions/error-report/index.ts supabase/functions/reconcile-subscriptions/index.ts supabase/functions/redeem-access/index.ts",
-    "test:html": "html-validate index.html app.html privacy.html terms.html 404.html 500.html",
-    "verify": "npm run build && npm run test:browser"
+    "test:env": "node --test tests/env-validation.test.mjs",
+    "test:matrix": "node --test tests/entitlement-matrix.test.mjs",
+    "test:endpoints": "node --test tests/endpoints.test.mjs",
+    "test:functions": "node --test tests/functions-http.test.mjs",
+    "test:security": "node --test tests/security.test.mjs",
+    "test:deno": "deno check --config supabase/functions/deno.json --node-modules-dir=manual supabase/functions/ai-proxy/index.ts supabase/functions/stripe-webhook/index.ts supabase/functions/account-delete/index.ts supabase/functions/billing-portal/index.ts supabase/functions/error-report/index.ts supabase/functions/reconcile-subscriptions/index.ts supabase/functions/redeem-access/index.ts supabase/functions/create-checkout/index.ts",
+    "test:workflows": "deno test --allow-env --allow-net --config supabase/functions/deno.json --node-modules-dir=manual supabase/functions/_shared/stripe-workflows.test.ts",
+    "test:html": "html-validate index.html app.html privacy.html terms.html pricing.html 404.html 500.html",
+    "verify": "npm run build && npm run test && npm run test:browser && npm run test:deno && npm run test:workflows"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.12.1",
@@ -21,6 +28,7 @@
     "@supabase/supabase-js": "2.110.5",
     "deno": "2.9.4",
     "html-validate": "11.5.6",
+    "jsdom": "26.1.0",
     "playwright": "1.61.1",
     "stripe": "14.21.0"
   },

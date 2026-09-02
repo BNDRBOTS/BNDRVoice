@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#090909">
+<meta name="description" content="BNDR VoiceEngine pricing — 7-day trial, monthly, annual, and lifetime access for forensic voice profiles.">
+<meta property="og:title" content="Pricing · BNDR VoiceEngine">
+<meta property="og:description" content="Start free with 5 analyses a day. Pro plans unlock 50 analyses a day with saved profiles and quality checks.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://voice.bndr.bot/assets/bndr-logo.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="application-version" content="3.2.0">
+<link rel="canonical" href="/pricing">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23090909'/%3E%3Cpath d='M32 12 52 32 32 52 12 32Z' fill='%23E0006A'/%3E%3C/svg%3E">
+<title>Pricing · BNDR VoiceEngine</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;600;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="assets/gsap.min.js" defer></script>
+<script src="assets/glass.js" defer></script>
+<style>
+:root {
+  --black:#090909; --surface:#0e0e0f; --panel:#141415; --panel2:#1a1a1c;
+  --bone:#F4F1EC; --muted:#b9b5ad; --dim:#7a766f; --border:#232325;
+  --mag:#E0006A; --mag-mid:rgba(224,0,106,0.45); --mag-dim:rgba(224,0,106,0.08);
+  --ice:#00C4FF; --font-d:'Outfit',sans-serif; --font-m:'Space Mono',monospace;
+  --r:8px; --ease:cubic-bezier(0.16,1,0.3,1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; overflow-x:clip; }
+body { background:var(--black); color:var(--bone); font-family:var(--font-d); font-weight:300; line-height:1.6; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+a { color:inherit; }
+.nav { position:fixed; top:0; left:0; right:0; z-index:100; display:flex; align-items:center; justify-content:space-between; padding:14px clamp(16px,4vw,40px); background:rgba(9,9,9,0.72); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px); border-bottom:1px solid var(--border); }
+.nav-links { display:flex; align-items:center; gap:26px; }
+.nav-links a { font-size:13.5px; color:var(--muted); text-decoration:none; }
+.nav-links a:hover { color:var(--bone); }
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; font-family:var(--font-d); font-weight:600; font-size:14px; padding:12px 22px; border-radius:var(--r); border:1px solid var(--border); background:var(--panel); color:var(--bone); cursor:pointer; text-decoration:none; }
+.btn-primary { background:var(--mag); border-color:var(--mag); color:#fff; }
+.nav .btn { padding:9px 16px; font-size:13px; }
+.nav-burger { display:none; background:none; border:1px solid var(--border); border-radius:6px; color:var(--bone); font-size:18px; width:38px; height:38px; cursor:pointer; }
+@media(max-width:760px){
+  .nav-links { position:fixed; top:63px; left:0; right:0; flex-direction:column; align-items:stretch; gap:0; background:rgba(9,9,9,0.97); border-bottom:1px solid var(--border); display:none; }
+  .nav-links.open { display:flex; }
+  .nav-links a { padding:15px 20px; border-top:1px solid var(--border); font-size:15px; }
+  .nav-links .btn { margin:14px 20px; }
+  .nav-burger { display:block; }
+}
+section { position:relative; max-width:1200px; margin:0 auto; padding:clamp(116px,14vh,156px) clamp(16px,4vw,40px) 80px; }
+.sec-eyebrow { font-family:var(--font-m); font-size:11px; letter-spacing:0.22em; color:var(--mag); text-transform:uppercase; margin-bottom:14px; }
+h1 { font-weight:900; font-size:clamp(32px,5vw,52px); letter-spacing:-0.015em; line-height:1.1; margin-bottom:14px; }
+.sec-sub { color:var(--muted); max-width:60ch; margin-bottom:44px; }
+.plans { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:stretch; }
+.plan { background:var(--panel); border:1px solid var(--border); border-radius:var(--r); padding:26px 22px; display:flex; flex-direction:column; position:relative; }
+.plan.featured { border-color:var(--mag); background:var(--mag-dim); }
+.plan-badge { position:absolute; top:-10px; left:50%; transform:translateX(-50%); background:var(--mag); color:#fff; font-family:var(--font-m); font-size:9.5px; letter-spacing:0.14em; padding:4px 10px; border-radius:99px; white-space:nowrap; }
+.plan-name { font-family:var(--font-m); font-size:11px; letter-spacing:0.16em; color:var(--dim); text-transform:uppercase; margin-bottom:12px; }
+.plan-price { font-size:36px; font-weight:900; }
+.plan-price sub { font-size:13px; font-weight:400; color:var(--dim); vertical-align:baseline; }
+.plan-note { font-family:var(--font-m); font-size:10.5px; color:var(--dim); margin:4px 0 18px; }
+.plan ul { list-style:none; display:grid; gap:9px; margin-bottom:22px; }
+.plan li { font-size:13px; color:var(--muted); padding-left:20px; position:relative; }
+.plan li::before { content:'✓'; position:absolute; left:0; color:var(--mag); font-family:var(--font-m); font-size:11px; }
+.plan .btn { margin-top:auto; width:100%; }
+.billing-note { text-align:center; font-family:var(--font-m); font-size:11px; color:var(--dim); margin-top:22px; }
+@media(max-width:980px){ .plans { grid-template-columns:repeat(2,1fr);} }
+@media(max-width:560px){ .plans { grid-template-columns:1fr;} }
+footer.site { border-top:1px solid var(--border); padding:34px clamp(16px,4vw,40px); display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; max-width:1200px; margin:0 auto; }
+footer.site .cols { display:flex; gap:22px; flex-wrap:wrap; }
+footer.site a { font-family:var(--font-m); font-size:10.5px; letter-spacing:0.1em; color:var(--dim); text-decoration:none; text-transform:uppercase; }
+footer.site a:hover { color:var(--mag); }
+footer.site .copy { font-family:var(--font-m); font-size:10.5px; color:var(--dim); letter-spacing:0.08em; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+}
+</style>
+<link href="assets/glass.css" rel="stylesheet">
+</head>
+<body>
+<nav class="nav">
+  <a class="logo" href="index.html" aria-label="BNDR VoiceEngine home">
+    <img class="brand-logo" src="assets/bndr-logo.png" width="797" height="230" alt="BNDR LLC">
+  </a>
+  <div class="nav-links" id="navLinks">
+    <a href="index.html#features">Features</a>
+    <a href="index.html#how">How it works</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="index.html#faq">FAQ</a>
+    <a class="btn btn-primary" href="app.html">Launch App</a>
+  </div>
+  <button class="nav-burger" id="navBurger" type="button" aria-label="Open menu" aria-expanded="false">☰</button>
+</nav>
+
+<section id="pricing">
+  <div class="sec-eyebrow">Pricing</div>
+  <h1>Costs less than the words it saves you</h1>
+  <p class="sec-sub">Comparable brand-voice tools run $29–$69 a month. VoiceEngine starts at $19 with server-secured AI processing included. Paid plans are created as Stripe checkout sessions after you sign in.</p>
+  <div class="plans">
+    <div class="plan">
+      <div class="plan-name">Trial</div>
+      <div class="plan-price">$0</div>
+      <div class="plan-note">7 days · no card required</div>
+      <ul><li>5 analyses per day</li><li>All 16 dimensions + 12 filters</li><li>Machine + human outputs</li><li>All 3 AI providers</li></ul>
+      <a class="btn" href="app.html">Try it free</a>
+    </div>
+    <div class="plan">
+      <div class="plan-name">Monthly</div>
+      <div class="plan-price" id="priceMonthly">$19<sub>/mo</sub></div>
+      <div class="plan-note" id="noteMonthly">Billed monthly</div>
+      <ul><li>50 analyses per day</li><li>Unlimited saved profiles</li><li>AI quality check audits</li><li>Cancel anytime</li></ul>
+      <a class="btn" href="app.html">Get Monthly</a>
+    </div>
+    <div class="plan featured">
+      <div class="plan-badge">BEST VALUE — SAVE 35%</div>
+      <div class="plan-name">Annual</div>
+      <div class="plan-price" id="priceAnnual">$149<sub>/yr</sub></div>
+      <div class="plan-note" id="noteAnnual">$12.42/mo — save 35%</div>
+      <ul><li>Everything in Monthly</li><li>2 months free</li><li>Price locked for renewal</li><li>Cancel anytime</li></ul>
+      <a class="btn btn-primary" href="app.html">Get Annual</a>
+    </div>
+    <div class="plan">
+      <div class="plan-name">Lifetime</div>
+      <div class="plan-price" id="priceLifetime">$99<sub> once</sub></div>
+      <div class="plan-note" id="noteLifetime">One payment. Yours forever.</div>
+      <ul><li>Unlimited analyses</li><li>License-key unlock via Gumroad</li><li>Free account required</li><li>All future updates</li></ul>
+      <button class="btn" id="lifetimeBtn" type="button">Get Lifetime</button>
+    </div>
+  </div>
+  <p class="billing-note">AI processing is included. Subscriptions and verified lifetime grants attach to your signed-in account. Checkout is created server-side; if billing keys are not configured, the app says billing is not enabled.</p>
+</section>
+
+<footer class="site">
+  <span class="copy">© <span id="year"></span> BNDR LLC · v3.2.0 — ALL RIGHTS RESERVED</span>
+  <div class="cols">
+    <a href="app.html">App</a>
+    <a href="pricing.html">Pricing</a>
+    <a href="terms.html">Terms</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="#" id="supportLink">Support</a>
+  </div>
+</footer>
+<script>
+const CFG = window.BNDR_CONFIG || {};
+(function () {
+  const p = CFG.PRICING || {};
+  const set = (id, noteId, plan) => {
+    const el = document.getElementById(id), note = document.getElementById(noteId);
+    if (el && p[plan]) {
+      el.replaceChildren(document.createTextNode(String(p[plan].price || '')));
+      const period = document.createElement('sub');
+      period.textContent = String(p[plan].period || '');
+      el.appendChild(period);
+    }
+    if (note && p[plan] && p[plan].note) note.textContent = p[plan].note;
+  };
+  set('priceMonthly', 'noteMonthly', 'monthly');
+  set('priceAnnual', 'noteAnnual', 'annual');
+  set('priceLifetime', 'noteLifetime', 'lifetime');
+})();
+document.getElementById('lifetimeBtn').addEventListener('click', () => {
+  const url = CFG.GUMROAD && CFG.GUMROAD.buyUrl;
+  let valid = false;
+  try { valid = new URL(String(url || '')).protocol === 'https:'; } catch (_) {}
+  if (valid) window.open(url, '_blank', 'noopener,noreferrer');
+  else window.location.href = 'app.html?redeem=1';
+});
+if (!(CFG.GUMROAD && CFG.GUMROAD.buyUrl)) {
+  document.getElementById('lifetimeBtn').textContent = 'Redeem a Code';
+  document.getElementById('noteLifetime').textContent = 'Purchases opening soon · codes work now';
+}
+(function () {
+  const a = document.getElementById('supportLink');
+  if (CFG.SUPPORT_EMAIL) a.href = 'mailto:' + CFG.SUPPORT_EMAIL;
+  else a.style.display = 'none';
+})();
+const burger = document.getElementById('navBurger');
+const links = document.getElementById('navLinks');
+burger.addEventListener('click', () => {
+  const open = links.classList.toggle('open');
+  burger.setAttribute('aria-expanded', String(open));
+  burger.textContent = open ? '✕' : '☰';
+});
+links.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+  links.classList.remove('open');
+  burger.setAttribute('aria-expanded', 'false');
+  burger.textContent = '☰';
+}));
+document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+</body>
+</html>
