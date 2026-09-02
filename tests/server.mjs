@@ -38,8 +38,9 @@ createServer((request, response) => {
     .find((candidate) => candidate.startsWith(`${root}/`) && existsSync(candidate) && statSync(candidate).isFile());
 
   if (!target) {
-    response.writeHead(404, { ...headers, 'Content-Type': 'text/plain; charset=utf-8' });
-    response.end('Not found');
+    const page404 = resolve(root, '404.html');
+    response.writeHead(404, { ...headers, 'Content-Type': 'text/html; charset=utf-8' });
+    createReadStream(page404).pipe(response);
     return;
   }
 

@@ -1,3 +1,6 @@
+import { jsonError } from '../_shared/errors.ts'
+import { enforceRateLimit } from '../_shared/rate-limit.ts'
+import { serve } from '../_shared/serve.ts'
 import { adminClient, serverConfigured, userClient } from '../_shared/supabase.ts'
 
 const appOrigin = Deno.env.get('APP_ORIGIN') || 'https://voice.bndr.bot'
@@ -14,7 +17,7 @@ async function sha256(value: string): Promise<string> {
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
-Deno.serve(async req => {
+export async function handleRequest(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors })
   if (req.method !== 'POST') return reply({ error: 'Method not allowed' }, 405)
 
@@ -25,6 +28,9 @@ Deno.serve(async req => {
   const client = userClient(authHeader)
   const { data: { user }, error: authError } = await client.auth.getUser()
   if (authError || !user) return reply({ error: 'Unauthorized' }, 401)
+  if (!(await enforceRateLimit(client, 'redeem-access', 10, 60))) {
+    return jsonError(cors, 'RATE', 429, 'Too many redemption attempts. Try again in a minute.')
+  }
 
   const input = await req.json().catch(() => null)
   const code = String(input?.code || '').trim()
@@ -68,4 +74,6 @@ Deno.serve(async req => {
   })
   if (error) return reply({ error: 'Could not grant access' }, 500)
   return reply({ granted: true, entitlement: 'lifetime' })
-})
+}
+
+serve(handleRequest)

@@ -7,7 +7,7 @@ import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const HTML_FILES = ['index.html', 'app.html', 'privacy.html', 'terms.html', '404.html', '500.html'];
+const HTML_FILES = ['index.html', 'app.html', 'privacy.html', 'terms.html', 'pricing.html', '404.html', '500.html'];
 const read = (file) => readFileSync(join(ROOT, file), 'utf8');
 const htmlByFile = Object.fromEntries(HTML_FILES.map((file) => [file, read(file)]));
 
@@ -182,6 +182,7 @@ test('auth, account ownership, tour state, and error reporting are fully wired',
   assert.match(app, /PASSWORD_RECOVERY/);
   assert.match(app, /functions\/v1\/account-delete/);
   assert.match(app, /functions\/v1\/redeem-access/);
+  assert.match(app, /functions\/v1\/create-checkout/);
   assert.match(accountDelete, /auth\.admin\.deleteUser\(user\.id\)/);
   assert.match(accountDelete, /stripe\.subscriptions\.cancel\(subscription\.stripe_subscription_id\)/);
   assert.match(accountDelete, /listExportPaths/);
@@ -199,7 +200,7 @@ test('auth, account ownership, tour state, and error reporting are fully wired',
   assert.match(app, /user_preferences/);
   assert.match(baseline, /CREATE TABLE IF NOT EXISTS public\.error_reports/);
   assert.match(schema, /ON DELETE CASCADE/);
-  assert.match(errorReport, /RESEND_API_KEY/);
+  assert.match(read('supabase/functions/_shared/email.ts'), /RESEND_API_KEY/);
   assert.match(app, /correlation_id/);
   assert.match(app, /reportLastError/);
   assert.match(app, /You are debugging BNDR VoiceEngine/);
@@ -225,6 +226,11 @@ test('billing lifecycle is idempotent and covers recovery, disputes, and reconci
   assert.match(schema, /CREATE TABLE IF NOT EXISTS public\.entitlements/);
   assert.match(schema, /only product-access source of truth/i);
   assert.match(schema, /billing event cannot revoke a separately purchased lifetime grant/i);
+  const hardening = read('supabase/migrations/20260902000000_rate_limits_trial_once.sql');
+  assert.match(hardening, /CREATE TABLE IF NOT EXISTS public.rate_limits/);
+  assert.match(hardening, /CREATE TABLE IF NOT EXISTS public.trial_identities/);
+  assert.match(read('supabase/functions/create-checkout/index.ts'), /checkout\.sessions\.create/);
+  assert.ok(existsSync(join(ROOT, 'supabase/rollbacks/20260902000000_rate_limits_trial_once.down.sql')));
 });
 
 test('proprietary forensic prompts are server-only and retain the recovered engine dimensions', () => {
@@ -242,18 +248,19 @@ test('proprietary forensic prompts are server-only and retain the recovered engi
   assert.match(read('supabase/functions/ai-proxy/index.ts'), /buildForensicRequest\(body\.operation, body\.payload\)/);
 });
 
-test('Railway is the only UI deployment target and operational routes are present', () => {
-  for (const file of ['railway.toml', 'Dockerfile']) {
+test('all four UI platforms plus Docker are present and operational routes exist', () => {
+  for (const file of ['railway.toml', 'Dockerfile', 'vercel.json', 'netlify.toml', 'render.yaml']) {
     assert.ok(existsSync(join(ROOT, file)), `${file} missing`);
   }
-  for (const file of ['vercel.json', 'netlify.toml', 'render.yaml']) {
-    assert.equal(existsSync(join(ROOT, file)), false, `${file} should not exist`);
-  }
-  for (const file of ['robots.txt', 'sitemap.xml', 'health.json', '404.html', '500.html', '.env.example']) {
+  for (const file of ['robots.txt', 'sitemap.xml', 'health.json', '404.html', '500.html', 'pricing.html', '.env.example']) {
     assert.ok(existsSync(join(ROOT, file)), `${file} missing`);
   }
   assert.match(read('Dockerfile'), /COPY 404\.html/);
+  assert.match(read('Dockerfile'), /COPY pricing\.html/);
   assert.match(read('nginx.conf'), /error_page 404 \/404\.html/);
+  assert.match(read('vercel.json'), /"\/health"/);
+  assert.match(read('netlify.toml'), /from = "\/health"/);
+  assert.match(read('render.yaml'), /healthCheckPath: \/health/);
   assert.equal(JSON.parse(read('health.json')).release, '3.2.0');
 });
 
@@ -306,6 +313,11 @@ test('edge-function environment example covers every server-side variable read',
     'supabase/functions/error-report/index.ts',
     'supabase/functions/reconcile-subscriptions/index.ts',
     'supabase/functions/redeem-access/index.ts',
+    'supabase/functions/create-checkout/index.ts',
+    'supabase/functions/_shared/env.ts',
+    'supabase/functions/_shared/email.ts',
+    'supabase/functions/_shared/serve.ts',
+    'supabase/functions/_shared/supabase.ts',
   ].map(read).join('\n');
   const names = [...functions.matchAll(/Deno\.env\.get\(['"]([A-Z0-9_]+)['"]\)/g)]
     .map((match) => match[1]);
@@ -324,6 +336,7 @@ test('keyless edge functions return designed configuration states instead of boo
   assert.match(accountDelete, /Server configuration incomplete/);
   assert.match(portal, /Billing is not configured/);
   assert.match(reconciliation, /Reconciliation is not configured/);
+  assert.match(read('supabase/functions/create-checkout/index.ts'), /Billing is not enabled/);
 });
 
 test('retired plaintext gift codes are absent', () => {

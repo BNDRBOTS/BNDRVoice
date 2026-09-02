@@ -10,6 +10,7 @@ window.BNDR_CONFIG = {
 
   /* Release marker used by diagnostics and support. */
   APP_VERSION: '3.2.0',
+  BUILD_COMMIT: '8389185',
 
   /* ── 1. SUPABASE (auth, entitlements, profiles, exports) ──────
      This must be a publishable key protected by Row Level Security. */
